@@ -78,25 +78,25 @@ I'm a Senior Software Developer with 8+ years of experience** building cloud-nat
 
 > 🚧 **Building my ML portfolio in 2025!** Follow along as I transition from Senior Software Developer to ML Engineer.
 
-#### 🔥 [Production MLOps Pipeline](https://github.com/yourusername/mlops-pipeline-aws) *(Coming Soon)*
+#### 🔥 [Production MLOps Pipeline](https://github.com/gyarram001/mlops-pipeline-aws) *(Coming Soon)*
 > End-to-end automated ML pipeline on AWS with SageMaker, Lambda, and Step Functions
 - **Tech**: AWS SageMaker, Lambda, Step Functions, CloudFormation, Python
 - **Features**: Automated training/deployment, Model monitoring, A/B testing, IaC
 - **Goal**: Production-grade ML system leveraging my AWS/DevOps expertise
 
-#### 🔥 [RAG-Powered Q&A System](https://github.com/yourusername/rag-qa-system) *(Coming Soon)*
+#### 🔥 [RAG-Powered Q&A System](https://github.com/gyarram001/rag-qa-system) *(Coming Soon)*
 > Intelligent document Q&A using Retrieval Augmented Generation
 - **Tech**: LangChain, Pinecone, Claude/GPT API, Python, Streamlit
 - **Features**: Vector search, Semantic retrieval, Source attribution
 - **Goal**: Modern AI system with enterprise documentation
 
-#### 🎯 [Image Classifier with Transfer Learning](https://github.com/yourusername/image-classifier-pytorch) *(Coming Soon)*
+#### 🎯 [Image Classifier with Transfer Learning](https://github.com/gyarram001/image-classifier-pytorch) *(Coming Soon)*
 > CNN-based image classification using PyTorch and ResNet
 - **Tech**: PyTorch, CNNs, ResNet, AWS SageMaker
 - **Features**: Custom CNN + Transfer learning comparison, SageMaker deployment
 - **Goal**: 95%+ accuracy, <100ms inference latency
 
-#### 🎯 [Sentiment Analysis with BERT](https://github.com/yourusername/sentiment-analyzer-bert) *(Coming Soon)*
+#### 🎯 [Sentiment Analysis with BERT](https://github.com/gyarram001/sentiment-analyzer-bert) *(Coming Soon)*
 > NLP sentiment analysis using pre-trained BERT models
 - **Tech**: Hugging Face, BERT, Transformers, PyTorch
 - **Features**: Fine-tuned BERT, Multi-class classification
@@ -137,7 +137,7 @@ I'm not starting from scratch - I'm combining ML with proven software engineerin
 
 ### 📫 Let's Connect!
 
-- 💼 **LinkedIn**: [linkedin.com/in/gopala-yarram](https://linkedin.com/in/gopala-yarram)
+- 💼 **LinkedIn**: www.linkedin.com/in/gopala-yarram-b3a296130
 - 📧 **Email**: gkreddy.yarram@gmail.com
 - 📍 **Location**: Wesley Chapel, Florida, US
 - 💬 **Open to**: ML Engineer, MLOps Engineer, AI/ML Solutions Architect roles
