@@ -1,0 +1,88 @@
+# Pre-commit hook configuration
+#
+# First-time setup:
+#   pip install -r requirements-dev.txt
+#   pre-commit install                        # installs pre-commit hook
+#   pre-commit install --hook-type commit-msg # installs commit-msg hook
+#
+# Run manually against all files:
+#   pre-commit run --all-files
+#
+# Update hook versions:
+#   pre-commit autoupdate
+
+repos:
+
+  # ── Standard file hygiene & security ──────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # File hygiene
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+      # Syntax checks
+      - id: check-yaml
+      - id: check-json
+
+      # Security
+      - id: detect-private-key
+      - id: detect-aws-credentials
+        args: ['--allow-missing-credentials']
+
+      # Size guard (block files > 500 KB)
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  # ── Code quality — Black (formatter) ──────────────────────────────────────
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3
+
+  # ── Code quality — Flake8 (linter) ────────────────────────────────────────
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        # max-line-length=88 matches Black's default
+        # E203/W503 conflict with Black's style — ignored
+        args: ['--max-line-length=88', '--extend-ignore=E203,W503']
+
+  # ── Custom local hooks ─────────────────────────────────────────────────────
+  - repo: local
+    hooks:
+
+      # PHI scanner — checks all staged text files for PHI patterns
+      # Add  # phi-ok  to a line to suppress a false positive
+      - id: check-phi
+        name: PHI Pattern Scanner
+        entry: python3 hooks/check-phi.py
+        language: system
+        types: [text]
+        exclude: |
+          (?x)^(
+            \.pre-commit-config\.yaml |
+            requirements.*\.txt       |
+            hooks/
+          )
+
+      # Commit message format enforcer (commit-msg stage)
+      # Format:  CATEGORY: short description
+      # Valid categories: FEAT FIX CHORE DOCS SECURITY REFACTOR TEST STYLE
+      - id: check-commit-msg
+        name: Commit Message Format
+        entry: python3 hooks/check-commit-msg.py
+        language: system
+        stages: [commit-msg]
+
+      # AI code review via Amazon Bedrock (Claude Sonnet)
+      # Blocks on CRITICAL issues; prints warnings but allows commit
+      # Only runs when Python files are staged
+      - id: ai-review
+        name: AI Code Review (Bedrock Claude)
+        entry: python3 hooks/ai-review.py
+        language: system
+        pass_filenames: false
+        types: [python]
