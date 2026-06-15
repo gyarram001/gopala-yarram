@@ -1,6 +1,7 @@
 from aws_cdk import (
     Stack,
     Duration,
+    RemovalPolicy,
     aws_sqs as sqs,
     aws_dynamodb as dynamodb,
     aws_lambda as lambda_,
@@ -32,6 +33,7 @@ class EligibilityStack(Stack):
                 name="transaction_id",
                 type=dynamodb.AttributeType.STRING,
             ),
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         # IAM Role for Lambda
