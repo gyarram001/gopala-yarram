@@ -48,7 +48,7 @@ class EligibilityStack(Stack):
 
         lambda_role.add_to_policy(
             iam.PolicyStatement(
-                actions=["bedrock:InvokeModel"],
+                actions=["bedrock:InvokeModel", "bedrock:Converse"],
                 resources=["*"],
             )
         )
@@ -81,7 +81,7 @@ class EligibilityStack(Stack):
             role=lambda_role,
             timeout=Duration.seconds(30),
             environment={
-                "BEDROCK_MODEL_ID": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+                "BEDROCK_MODEL_ID": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
                 "DYNAMODB_TABLE_NAME": table.table_name,
             },
         )
