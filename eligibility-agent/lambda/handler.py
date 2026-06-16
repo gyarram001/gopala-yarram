@@ -11,6 +11,21 @@ MODEL_ID = os.environ["BEDROCK_MODEL_ID"]
 TABLE_NAME = os.environ["DYNAMODB_TABLE_NAME"]
 
 
+def parse_bedrock_json(raw: str, transaction_id: str) -> dict:
+    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        print(json.dumps({
+            "level": "ERROR",
+            "message": "Failed to parse Bedrock response as JSON",
+            "transaction_id": transaction_id,
+            "parse_error": str(e),
+            "raw_response": raw,
+        }))
+        return {"parse_error": str(e), "raw_response": raw}
+
+
 def handler(event, context):
     table = dynamodb.Table(TABLE_NAME)
 
@@ -41,26 +56,53 @@ def handler(event, context):
                     "content": [{"text": prompt}],
                 }
             ],
+            inferenceConfig={
+                "temperature": 0.0,
+                "maxTokens": 500,
+            },
         )
 
-        analysis = response["output"]["message"]["content"][0]["text"]
+        stop_reason = response["stopReason"]
+        raw_text = response["output"]["message"]["content"][0]["text"]
 
-        item = {
-            "transaction_id": transaction_id,
-            "member_id": member_id,
-            "payer_name": payer_name,
-            "service_date": service_date,
-            "service_type": service_type,
-            "analysis": analysis,
-            "processed_at": datetime.now(timezone.utc).isoformat(),
-        }
+        if stop_reason == "max_tokens":
+            print(json.dumps({
+                "level": "WARNING",
+                "message": "Bedrock response truncated — maxTokens limit reached",
+                "transaction_id": transaction_id,
+                "member_id": member_id,
+                "stop_reason": stop_reason,
+            }))
+
+            item = {
+                "transaction_id": transaction_id,
+                "member_id": member_id,
+                "payer_name": payer_name,
+                "service_date": service_date,
+                "service_type": service_type,
+                "analysis_error": "TRUNCATED — Bedrock response hit maxTokens limit; output is incomplete",
+                "processed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        else:
+            analysis = parse_bedrock_json(raw_text, transaction_id)
+
+            item = {
+                "transaction_id": transaction_id,
+                "member_id": member_id,
+                "payer_name": payer_name,
+                "service_date": service_date,
+                "service_type": service_type,
+                "analysis": json.dumps(analysis),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
+            }
 
         table.put_item(Item=item)
 
         print(json.dumps({
             "transaction_id": transaction_id,
             "member_id": member_id,
-            "analysis": analysis,
+            "stop_reason": stop_reason,
+            "analysis": analysis if stop_reason != "max_tokens" else None,
         }))
 
     return {"statusCode": 200}
