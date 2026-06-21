@@ -7,6 +7,8 @@ All demos use the `us-east-1` region and the `cdk-dev` AWS profile.
 **Model used throughout:** `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
 (Bedrock cross-region inference)
 
+**Default branch:** `main`
+
 ---
 
 ## Repository Structure
@@ -258,6 +260,13 @@ python rag_demo.py
 ```
 
 ---
+
+## Getting Started
+
+```bash
+git clone https://github.com/gyarram001/gopala-yarram.git
+cd gopala-yarram
+```
 
 ## Prerequisites
 
