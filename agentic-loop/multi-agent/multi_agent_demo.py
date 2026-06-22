@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Multi-Agent Demo — Amazon Bedrock Converse API with Claude Sonnet
-Profile : cdk-dev  |  Region : us-east-1
+Profile : AWS_PROFILE env var (default: cdk-dev)  |  Region : AWS_REGION env var (default: us-east-1)
 
 Three patterns demonstrated:
   Pattern 1 — Orchestrator + Workers
@@ -10,6 +10,7 @@ Three patterns demonstrated:
 """
 
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -18,15 +19,15 @@ import boto3
 # ─────────────────────────────────────────────────────────────────────────────
 # Configuration
 # ─────────────────────────────────────────────────────────────────────────────
-PROFILE  = "cdk-dev"
-REGION   = "us-east-1"
+PROFILE = os.getenv("AWS_PROFILE", "cdk-dev")
+REGION = os.getenv("AWS_REGION", "us-east-1")
 MODEL_ID = "us.anthropic.claude-sonnet-4-6"
 
 TRANSACTION = {
-    "member_id":      "AET-889221",
-    "payer_name":     "Aetna",
-    "service_date":   "2026-06-20",
-    "service_type":   "knee surgery",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID, not real PHI
+    "payer_name": "Aetna",
+    "service_date": "2026-06-20",
+    "service_type": "knee surgery",
     "diagnosis_code": "M17.11",
     "estimated_cost": "$45,000",
 }
@@ -55,11 +56,15 @@ def call_agent(client, name: str, system: str, user_msg: str) -> dict:
         modelId=MODEL_ID,
         system=[{"text": system}],
         messages=[{"role": "user", "content": [{"text": user_msg}]}],
+        # temperature=0.0: every agent call must be deterministic — non-deterministic
+        # orchestrators produce different plans on identical inputs, making the entire
+        # downstream pipeline non-deterministic and non-auditable for HIPAA compliance
+        inferenceConfig={"temperature": 0.0},
     )
     elapsed = time.time() - t0
 
-    text   = response["output"]["message"]["content"][0]["text"]
-    usage  = response["usage"]
+    text = response["output"]["message"]["content"][0]["text"]
+    usage = response["usage"]
     tokens = usage.get("inputTokens", 0) + usage.get("outputTokens", 0)
 
     return {"agent": name, "output": text, "tokens": tokens, "elapsed": elapsed}
@@ -108,9 +113,9 @@ def pattern1_orchestrator_workers(client: object) -> str:
                             →  Orchestrator-Synthesiser (final decision)
     """
     banner("PATTERN 1 — Orchestrator + Workers")
-    tx_json      = json.dumps(TRANSACTION, indent=2)
+    tx_json = json.dumps(TRANSACTION, indent=2)
     total_tokens = 0
-    t_start      = time.time()
+    t_start = time.time()
 
     # ── Step 1 · Orchestrator plans subtasks ─────────────────────────────
     section("Step 1 · Orchestrator — planning subtasks")
@@ -122,8 +127,12 @@ def pattern1_orchestrator_workers(client: object) -> str:
         "  - risk_assessor: scores risk level\n"
         'Return ONLY valid JSON: {"subtasks": [{"agent": "...", "task": "...", "priority": 1}]}'
     )
-    plan_r = call_agent(client, "Orchestrator-Planner", plan_system,
-                        f"Plan subtasks for this eligibility transaction:\n{tx_json}")
+    plan_r = call_agent(
+        client,
+        "Orchestrator-Planner",
+        plan_system,
+        f"Plan subtasks for this eligibility transaction:\n{tx_json}",
+    )
     total_tokens += plan_r["tokens"]
     print_result(plan_r)
 
@@ -148,14 +157,19 @@ def pattern1_orchestrator_workers(client: object) -> str:
 
     worker_outputs: dict[str, str] = {}
     for subtask in sorted(plan["subtasks"], key=lambda x: x["priority"]):
-        agent_key  = subtask["agent"]
-        task_desc  = subtask["task"]
-        sys_prompt = worker_systems.get(agent_key,
-                                        "You are a specialist agent. Analyse and respond.")
+        agent_key = subtask["agent"]
+        task_desc = subtask["task"]
+        sys_prompt = worker_systems.get(
+            agent_key, "You are a specialist agent. Analyse and respond."
+        )
         section(f"Step 2 · Worker — {agent_key}  (priority {subtask['priority']})")
-        wr = call_agent(client, agent_key, sys_prompt,
-                        f"Transaction:\n{tx_json}\n\nYour specific task: {task_desc}")
-        total_tokens            += wr["tokens"]
+        wr = call_agent(
+            client,
+            agent_key,
+            sys_prompt,
+            f"Transaction:\n{tx_json}\n\nYour specific task: {task_desc}",
+        )
+        total_tokens += wr["tokens"]
         worker_outputs[agent_key] = wr["output"]
         print_result(wr)
 
@@ -173,12 +187,16 @@ def pattern1_orchestrator_workers(client: object) -> str:
         'Return ONLY valid JSON: {"decision": "approved|denied|pending", "confidence": 90, '
         '"recommended_action": "...", "requires_human_review": false}'
     )
-    synth_r = call_agent(client, "Orchestrator-Synthesiser", synth_system, synthesis_input)
+    synth_r = call_agent(
+        client, "Orchestrator-Synthesiser", synth_system, synthesis_input
+    )
     total_tokens += synth_r["tokens"]
     print_result(synth_r)
 
     elapsed = time.time() - t_start
-    print(f"\nPattern 1 complete | total tokens: {total_tokens} | total time: {elapsed:.2f}s")
+    print(
+        f"\nPattern 1 complete | total tokens: {total_tokens} | total time: {elapsed:.2f}s"
+    )
     return synth_r["output"]
 
 
@@ -193,14 +211,15 @@ def pattern2_sequential_pipeline(client: object) -> str:
       Intake → Validation → Enrichment → Decision
     """
     banner("PATTERN 2 — Sequential Pipeline")
-    tx_json      = json.dumps(TRANSACTION, indent=2)
+    tx_json = json.dumps(TRANSACTION, indent=2)
     total_tokens = 0
-    t_start      = time.time()
+    t_start = time.time()
 
     # ── Agent 1 · Intake ─────────────────────────────────────────────────
     section("Agent 1 · Intake — extract & normalise")
     a1 = call_agent(
-        client, "Intake-Agent",
+        client,
+        "Intake-Agent",
         (
             "You are a healthcare intake agent. Extract and normalise all fields from the "
             "eligibility transaction. Standardise dates to ISO-8601, costs to numeric USD, "
@@ -215,7 +234,8 @@ def pattern2_sequential_pipeline(client: object) -> str:
     # ── Agent 2 · Validation ─────────────────────────────────────────────
     section("Agent 2 · Validation — validate normalised fields from Agent 1")
     a2 = call_agent(
-        client, "Validation-Agent",
+        client,
+        "Validation-Agent",
         (
             "You are a 270/271 transaction validator. Given normalised fields from the intake "
             "agent, check completeness and format compliance against X12 EDI standards. "
@@ -230,7 +250,8 @@ def pattern2_sequential_pipeline(client: object) -> str:
     # ── Agent 3 · Enrichment ─────────────────────────────────────────────
     section("Agent 3 · Enrichment — add payer context using Agent 2 output")
     a3 = call_agent(
-        client, "Enrichment-Agent",
+        client,
+        "Enrichment-Agent",
         (
             "You are a payer-context enrichment agent. Using the validated transaction data, "
             "add relevant Aetna payer rules, prior-auth thresholds, and ICD-10 M17.11 "
@@ -251,7 +272,8 @@ def pattern2_sequential_pipeline(client: object) -> str:
         f"Enrichment:\n{a3['output']}"
     )
     a4 = call_agent(
-        client, "Decision-Agent",
+        client,
+        "Decision-Agent",
         (
             "You are a final eligibility decision agent. Using all pipeline outputs, "
             "produce a definitive eligibility ruling. "
@@ -266,7 +288,9 @@ def pattern2_sequential_pipeline(client: object) -> str:
     print_result(a4)
 
     elapsed = time.time() - t_start
-    print(f"\nPattern 2 complete | total tokens: {total_tokens} | total time: {elapsed:.2f}s")
+    print(
+        f"\nPattern 2 complete | total tokens: {total_tokens} | total time: {elapsed:.2f}s"
+    )
     return a4["output"]
 
 
@@ -285,7 +309,7 @@ def pattern3_parallel_specialists(client: object) -> str:
                           └── Merge-Orchestrator (final decision)
     """
     banner("PATTERN 3 — Parallel Specialists")
-    tx_json      = json.dumps(TRANSACTION, indent=2)
+    tx_json = json.dumps(TRANSACTION, indent=2)
     total_tokens = 0
 
     specialist_configs = [
@@ -318,18 +342,19 @@ def pattern3_parallel_specialists(client: object) -> str:
 
     # ── Parallel execution ────────────────────────────────────────────────
     section("Fanning out — 3 specialist agents running IN PARALLEL")
-    t_parallel_start  = time.time()
+    t_parallel_start = time.time()
     parallel_results: dict[str, dict] = {}
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         futures = {
-            pool.submit(call_agent, client, name, sys_prompt,
-                        f"Transaction:\n{tx_json}"): name
+            pool.submit(
+                call_agent, client, name, sys_prompt, f"Transaction:\n{tx_json}"
+            ): name
             for name, sys_prompt in specialist_configs
         }
         for future in as_completed(futures):
             name = futures[future]
-            r    = future.result()
+            r = future.result()
             parallel_results[name] = r
             print_result(r)
             total_tokens += r["tokens"]
@@ -340,26 +365,26 @@ def pattern3_parallel_specialists(client: object) -> str:
     # ── Sequential baseline (same prompts, same agents) ───────────────────
     section("Sequential baseline — same 3 agents run one-at-a-time")
     t_seq_start = time.time()
-    seq_tokens  = 0
+    seq_tokens = 0
     for name, sys_prompt in specialist_configs:
-        r = call_agent(client, f"{name}-seq", sys_prompt,
-                       f"Transaction:\n{tx_json}")
+        r = call_agent(client, f"{name}-seq", sys_prompt, f"Transaction:\n{tx_json}")
         seq_tokens += r["tokens"]
         print(f"  [{r['agent']}]  {r['elapsed']:.2f}s")
 
     t_seq = time.time() - t_seq_start
     print(f"\n  Sequential wall-clock time : {t_seq:.2f}s")
     print(f"  Speedup from parallelism   : {t_seq / t_parallel:.2f}x")
-    total_tokens += seq_tokens
+    # seq_tokens intentionally excluded from total_tokens — sequential run is a
+    # measurement baseline only, not part of the actual pattern's workload
 
     # ── Orchestrator merges parallel results ──────────────────────────────
     section("Orchestrator — merging parallel results into final decision")
     merge_input = "\n\n".join(
-        f"[{name}]:\n{r['output']}"
-        for name, r in parallel_results.items()
+        f"[{name}]:\n{r['output']}" for name, r in parallel_results.items()
     )
     merge_r = call_agent(
-        client, "Merge-Orchestrator",
+        client,
+        "Merge-Orchestrator",
         (
             "You are an eligibility workflow orchestrator. "
             "Merge these parallel specialist reports into a single final eligibility decision. "
@@ -372,7 +397,6 @@ def pattern3_parallel_specialists(client: object) -> str:
     total_tokens += merge_r["tokens"]
     print_result(merge_r)
 
-    t_total = t_parallel + t_seq + merge_r["elapsed"]
     print(
         f"\nPattern 3 complete | total tokens: {total_tokens} | "
         f"parallel time: {t_parallel:.2f}s | seq baseline: {t_seq:.2f}s | "
