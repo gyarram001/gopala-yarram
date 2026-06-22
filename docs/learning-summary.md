@@ -1,5 +1,5 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** June 21, 2026
+**Started:** June 14, 2026 | **Last Updated:** June 22, 2026
 
 ---
 
@@ -289,8 +289,8 @@ Give Claude a specific identity before asking it anything. A specialist gives sp
 "Review this transaction"
 
 # GOOD — healthcare specialist response
-system = "You are a senior healthcare eligibility specialist with 10 years 
-experience processing 270/271 transactions. You understand HIPAA compliance, 
+system = "You are a senior healthcare eligibility specialist with 10 years
+experience processing 270/271 transactions. You understand HIPAA compliance,
 payer requirements, and common eligibility issues."
 ```
 
@@ -318,7 +318,7 @@ Force Claude to return structured JSON so your Python code can parse and act on 
 
 ```python
 "Return your analysis as JSON with exactly these fields:
-is_valid (boolean), missing_fields (list), issues (list), 
+is_valid (boolean), missing_fields (list), issues (list),
 recommended_action (string)"
 
 # Then in Python:
@@ -640,7 +640,7 @@ messages = [initial_message]
 
 while iteration < MAX_ITERATIONS:
     response = bedrock.converse(tools=tools, messages=messages)
-    
+
     if response["stopReason"] == "end_turn":
         break
     elif response["stopReason"] == "tool_use":
@@ -744,7 +744,7 @@ Agent reviews its own draft output before returning it. Pass 1 generates initial
 Cost/quality tradeoff from demo:
 ```
 Baseline:    cheapest, generic — relies on training knowledge
-Reflection:  4× tokens, Aetna-specific — catches missed edge cases  
+Reflection:  4× tokens, Aetna-specific — catches missed edge cases
 ReAct:       10× tokens, fully tool-grounded, auditable reasoning chain
 ```
 
@@ -872,10 +872,35 @@ New Aetna PDF uploaded to S3
 
 ---
 
-**Session 7 (June 22) — planned:**
-- Multi-agent orchestration: orchestrator + specialist agent patterns at scale
-- Skeleton started: `agentic-loop/multi-agent/multi_agent_demo.py`
-- Topics to cover: coordinator-worker vs pipeline vs market topologies, agent-to-agent communication, token budget management across the full pipeline
+**Session 7 (June 22) — Multi-Agent Orchestration:**
+
+Three coordination patterns built and run end-to-end against real Bedrock calls. File: `agentic-loop/multi-agent/multi_agent_demo.py`
+
+**Pattern 1 — Orchestrator + Workers** (4,755 tokens | 45.06s)
+- Orchestrator makes a *planning call first* — separates deciding what to do from doing it
+- Returns a structured subtask list with priorities; workers execute sorted by priority
+- Synthesiser receives all worker outputs and produces a unified decision
+- Workers ran sequentially (priority 1→2→3); validator got `is_valid: true` — surface check only
+
+**Pattern 2 — Sequential Pipeline** (9,511 tokens | 73.73s)
+- Each agent's full output feeds the next; context accumulates across the chain
+- Used 2× the tokens of Pattern 1 — the cost of richer context
+- Validation agent caught 12 specific X12 EDI 270 compliance errors (compliance score: 12/100) that Pattern 1's validator missed entirely — because it had normalised fields from the intake agent to reason against
+- Agent 4 (Decision) received all three prior outputs — final decision nodes need full context
+
+**Pattern 3 — Parallel Specialists** (5,594 tokens | 9.83s parallel phase)
+- Fan-out to 3 specialists simultaneously via ThreadPoolExecutor
+- Sequential baseline immediately after: 24.98s → **2.54× speedup proved**
+- Better than the 2.18× from `parallel_tools_demo.py` — full Bedrock round-trips (~8-10s each) maximise I/O-bound parallelism gains
+- Merge orchestrator introduced `blocking: true/false` in consensus output — Claude added this structure unprompted, which is useful but would need to be locked down in production
+
+**Bugs found via /review and fixed:**
+- `inferenceConfig` with `temperature=0.0` was missing from every `call_agent` invocation — in multi-agent systems, each call is a fresh API call with its own inference parameters; there is no shared config that propagates from an outer loop
+- Pattern 3 `total_tokens` was including sequential baseline tokens, inflating the reported cost
+- Hardcoded `PROFILE` and `REGION` constants → externalized to `os.getenv`
+- Unused `t_total` variable; PHI false positive on synthetic test ID; E501 long strings fixed via `setup.cfg` `per-file-ignores`
+
+**Key dependency graph insight:** Pattern 1 encodes dependencies via priority numbers (orchestrator assigns 1, 2, 3). The orchestrator's task description for the risk assessor referenced Aetna's medical necessity criteria — meaning it knew the dependency existed and baked it into the task prompt. This works but is fragile: two agents with the same priority would run in arbitrary order. A proper dependency graph (`depends_on` field in the planning output) is the next extension.
 
 ---
 
@@ -907,6 +932,10 @@ New Aetna PDF uploaded to S3
 24. **RAG grounds Claude in your current documents** — not training knowledge that may be outdated
 25. **Bad retrieval is worse than no retrieval** — always threshold cosine score before injecting context
 26. **Bedrock Knowledge Bases = zero-ops RAG** — point at S3, AWS handles everything underneath
+27. **Pipeline depth trades cost for quality** — sequential pipeline used 2× tokens but found 12 EDI errors that coordinator-worker missed; choose topology based on how much context each agent needs
+28. **Temperature must be set per agent call** — in multi-agent systems there is no shared inferenceConfig; every `converse()` call needs its own `temperature=0.0` or it defaults to non-deterministic
+29. **Self-reported confidence is not calibrated probability** — Claude's `"confidence": 72` is introspective, not a calibrated score; never use it as a hard routing threshold without validation
+30. **Parallel speedup scales with I/O-bound work** — full Bedrock round-trips gave 2.54× vs 2.18× for tool calls; the longer each task waits on network, the more parallelism pays off
 
 ---
 
@@ -917,8 +946,8 @@ New Aetna PDF uploaded to S3
 3. ✅ When to use AI vs code
 4. ✅ CDK + Lambda + SQS + DynamoDB agent
 5. ✅ Prompt engineering — all techniques
-6. 🔄 Agentic loops deep dive (multi-agent patterns remaining)
-7. ⬜ Multi-agent orchestration — orchestrator + specialist agents at scale
+6. ✅ Agentic loops deep dive (tool use, memory, human-in-loop, reflection, parallel, RAG, multi-agent)
+7. ✅ Multi-agent orchestration — orchestrator + workers, sequential pipeline, parallel specialists
 8. ⬜ Claude Code — how to use it effectively as a developer tool
 9. ⬜ MCP (Model Context Protocol) — building and connecting MCP servers
 10. ⬜ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
