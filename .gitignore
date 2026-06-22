@@ -13,7 +13,9 @@ cdk.out/
 node_modules/
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 
 # OS
 .DS_Store

@@ -919,22 +919,33 @@ New Aetna PDF uploaded to S3
 7. ⬜ Multi-agent orchestration — orchestrator + specialist agents at scale
 8. ⬜ Claude Code — how to use it effectively as a developer tool
 9. ⬜ MCP (Model Context Protocol) — building and connecting MCP servers
-10. ⬜ LangChain (after raw APIs feel natural)
+10. ⬜ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ⬜ Step Functions for multi-step workflows
-12. ⬜ Bedrock Agents (managed service vs DIY)
-13. ⬜ Embeddings + vector search (OpenSearch on AWS)
-14. ⬜ Multi-source RAG — retrieving from multiple knowledge bases in one query
-15. ⬜ Structured outputs / JSON schema enforcement
-16. ⬜ Streaming responses
-17. ⬜ Fine-tuning vs prompting — when to use which
-18. ⬜ Cost architecture — model selection strategy (Haiku vs Sonnet)
-19. ⬜ AI governance + HIPAA compliance for AI systems
-20. ⬜ Reliability (retries, idempotency, dead letter queues)
-21. ⬜ Security (prompt injection, PHI scrubbing)
-22. ⬜ Evaluation + testing agents
-23. ⬜ Observability (tracing, cost monitoring)
-24. ⬜ Real use case: denial analysis or free-text eligibility parser
-25. ⬜ Azure DevOps pipeline hooks
+12. ⬜ n8n — build AI-powered workflows with no/low code
+13. ⬜ Bedrock Agents (managed service vs DIY)
+14. ⬜ Embeddings + vector search (OpenSearch on AWS)
+15. ⬜ Multi-source RAG — retrieving from multiple knowledge bases in one query
+16. ⬜ Structured outputs / JSON schema enforcement
+17. ⬜ Streaming responses
+18. ⬜ Fine-tuning vs prompting — when to use which
+19. ⬜ Cost architecture — model selection strategy (Haiku vs Sonnet)
+20. ⬜ AI governance + HIPAA compliance for AI systems
+21. ⬜ Reliability (retries, idempotency, dead letter queues)
+22. ⬜ Security (prompt injection, PHI scrubbing)
+23. ⬜ Evaluation + testing agents
+24. ⬜ Harness engineering — building systematic test frameworks for AI agent evaluation
+25. ⬜ Observability (tracing, cost monitoring)
+26. ⬜ Real use case: denial analysis or free-text eligibility parser
+27. ⬜ Azure DevOps pipeline hooks
+
+**LangGraph (added to item 10):**
+LangChain's framework for building stateful, cyclical agent workflows as graphs. Where LangChain handles single-pass chains, LangGraph handles loops — agents that reason, act, check results, and loop back. Think of it as the code-level equivalent of Step Functions but for agent logic specifically. Pairs naturally with LangChain — learn both together.
+
+**n8n (item 12):**
+Open-source workflow automation platform (like Zapier but self-hostable and more powerful). Build AI-powered workflows visually — connect Bedrock, SQS, DynamoDB, payer APIs without writing all the glue code. Good for rapid prototyping of agent workflows before committing to full Lambda/Step Functions implementation. Can be self-hosted on EC2 — stays inside your AWS environment for HIPAA compliance.
+
+**Harness engineering (item 24):**
+Building systematic evaluation frameworks (test harnesses) for AI agents. Standard unit tests don't work for agents — outputs are non-deterministic. Harness engineering covers: defining evaluation datasets (input + expected output pairs), scoring functions (exact match, semantic similarity, human rating), regression suites that run on every prompt change, and CI/CD integration so prompt changes are automatically evaluated before deployment. Critical for production healthcare agents where wrong decisions have real consequences.
 
 **Multi-agent orchestration (item 7):**
 Goes beyond basic multi-agent patterns — focuses on how a central orchestrator agent coordinates multiple specialist agents at scale. Orchestrator receives a task, breaks it into subtasks, delegates to the right specialist, collects results, synthesizes final answer. Covers: agent communication protocols, handling partial failures across agents, state management between agents, when to use Step Functions vs code-based orchestration.
