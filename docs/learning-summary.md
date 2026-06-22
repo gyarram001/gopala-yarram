@@ -1,5 +1,5 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** June 15, 2026
+**Started:** June 14, 2026 | **Last Updated:** June 21, 2026
 
 ---
 
@@ -872,8 +872,10 @@ New Aetna PDF uploaded to S3
 
 ---
 
-**Remaining agentic loop topics (next session):**
-- Multi-agent patterns ← next
+**Session 7 (June 22) — planned:**
+- Multi-agent orchestration: orchestrator + specialist agent patterns at scale
+- Skeleton started: `agentic-loop/multi-agent/multi_agent_demo.py`
+- Topics to cover: coordinator-worker vs pipeline vs market topologies, agent-to-agent communication, token budget management across the full pipeline
 
 ---
 
