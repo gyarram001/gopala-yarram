@@ -166,16 +166,22 @@ async def check_payer_requirements(payer_name: str, service_type: str) -> dict:
 # asyncio.to_thread() runs the synchronous boto3 call in a background thread.
 # The event loop stays unblocked — other tool calls can proceed during the wait.
 # This is the ONLY safe way to call boto3 from inside async def.
+#
+# NOTE: This requires a separate MemberHistory table keyed by member_id.
+# The EligibilityResults table in the CDK stack is keyed by transaction_id
+# (one row per SQS decision) — that is a different access pattern entirely.
+# A member history table stores all past claims/prior-auths for one member.
 # ---------------------------------------------------------------------------
 async def get_member_history_dynamo(
     member_id: str,  # phi-ok — param, not real PHI
 ) -> dict:
     """Production version — reads from DynamoDB instead of mock data."""
-    table = dynamodb.Table("EligibilityResults")
+    table_name = os.getenv("MEMBER_HISTORY_TABLE", "MemberHistory")
+    table = dynamodb.Table(table_name)
 
     def _get():
-        response = table.get_item(Key={"transaction_id": member_id})
-        return response.get("Item", {})
+        # Key is member_id, not transaction_id — these are different tables
+        return table.get_item(Key={"member_id": member_id}).get("Item", {})
 
     # asyncio.to_thread: runs _get() in a thread pool, awaits the result
     # without blocking the MCP server's event loop

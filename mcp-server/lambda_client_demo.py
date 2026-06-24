@@ -181,6 +181,23 @@ async def run_eligibility_agent(transaction: dict) -> dict:
             }
             return result
 
+        elif stop_reason == "max_tokens":
+            # Response was cut off mid-generation — do not act on truncated output.
+            # CLAUDE.md rule: never save to DynamoDB when stopReason is max_tokens.
+            # Raise maxTokens in inferenceConfig or tighten the prompt if this fires.
+            return {
+                "error": "truncated_response",
+                "stop_reason": "max_tokens",
+                "message": (
+                    "Claude response cut off. Raise maxTokens or shorten prompt."
+                ),
+                "_tokens": {
+                    "input": total_input_tokens,
+                    "output": total_output_tokens,
+                    "total": total_input_tokens + total_output_tokens,
+                },
+            }
+
         elif stop_reason == "tool_use":
             # Claude wants to call tools — run them all (may be batched)
             # Bedrock Converse API wraps tool calls as {"toolUse": {...}}
