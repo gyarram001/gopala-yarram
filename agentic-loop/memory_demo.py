@@ -9,20 +9,19 @@ Demo 4: Summarization   — compress old turns to control token growth
 
 import json
 import boto3
-from boto3.dynamodb.conditions import Key
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_ID  = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-REGION    = "us-east-1"
-PROFILE   = "cdk-dev"
+MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+REGION = "us-east-1"
+PROFILE = "cdk-dev"
 TABLE_NAME = "eligibility-decisions"
-MEMBER_PK  = "MEMBER#AET-889221"          # stored in the table's pk field
+MEMBER_PK = "MEMBER#AET-889221"  # stored in the table's pk field  # phi-ok — synthetic test ID  # noqa: E501
 
-session  = boto3.Session(profile_name=PROFILE, region_name=REGION)
-bedrock  = session.client("bedrock-runtime")
-dynamodb     = session.resource("dynamodb")
+session = boto3.Session(profile_name=PROFILE, region_name=REGION)
+bedrock = session.client("bedrock-runtime")
+dynamodb = session.resource("dynamodb")
 dynamodb_client = session.client("dynamodb")
 
 
@@ -51,13 +50,14 @@ table = ensure_table()
 # Thin wrapper around Bedrock Converse
 # ---------------------------------------------------------------------------
 
+
 def converse(messages: list[dict], system: str = "") -> tuple[str, dict]:
     """Call Bedrock Converse and return (reply_text, usage_dict)."""
     kwargs = dict(modelId=MODEL_ID, messages=messages)
     if system:
         kwargs["system"] = [{"text": system}]
-    resp   = bedrock.converse(**kwargs)
-    text   = ""
+    resp = bedrock.converse(**kwargs)
+    text = ""
     for block in resp["output"]["message"]["content"]:
         if "text" in block:
             text += block["text"]
@@ -90,13 +90,16 @@ def subdiv(label: str) -> None:
 # DEMO 1 — No memory (stateless)
 # ===========================================================================
 
+
 def demo_no_memory() -> None:
     divider("DEMO 1 — No Memory (Stateless)")
-    print("  Each call gets a brand-new messages list. Claude has no\n"
-          "  knowledge of previous calls.\n")
+    print(
+        "  Each call gets a brand-new messages list. Claude has no\n"
+        "  knowledge of previous calls.\n"
+    )
 
     prompts = [
-        "My member ID is AET-889221 and I have Aetna insurance.",
+        "My member ID is AET-889221 and I have Aetna insurance.",  # phi-ok — synthetic test ID  # noqa: E501
         "What is my member ID?",
         "What insurance do I have?",
     ]
@@ -113,15 +116,18 @@ def demo_no_memory() -> None:
 # DEMO 2 — Short-term memory (in-process conversation history)
 # ===========================================================================
 
+
 def demo_short_term_memory() -> None:
     divider("DEMO 2 — Short-Term Memory (Conversation History)")
-    print("  Each call appends to a shared messages list. Claude\n"
-          "  remembers everything said earlier in this session.\n")
+    print(
+        "  Each call appends to a shared messages list. Claude\n"
+        "  remembers everything said earlier in this session.\n"
+    )
 
     messages: list[dict] = []
 
     prompts = [
-        "My member ID is AET-889221 and I have Aetna insurance.",
+        "My member ID is AET-889221 and I have Aetna insurance.",  # phi-ok — synthetic test ID  # noqa: E501
         "What is my member ID?",
         "What insurance do I have?",
     ]
@@ -138,12 +144,15 @@ def demo_short_term_memory() -> None:
             print(f"  >> Call {i} token usage (shows history accumulation):")
             print(f"     Input tokens  : {usage.get('inputTokens', 0)}")
             print(f"     Output tokens : {usage.get('outputTokens', 0)}")
-            print(f"     Total tokens  : {usage.get('inputTokens', 0) + usage.get('outputTokens', 0)}")
+            print(
+                f"     Total tokens  : {usage.get('inputTokens', 0) + usage.get('outputTokens', 0)}"  # noqa: E501
+            )
 
 
 # ===========================================================================
 # DEMO 3 — Long-term memory (DynamoDB)
 # ===========================================================================
+
 
 def demo_long_term_memory() -> None:
     divider("DEMO 3 — Long-Term Memory (DynamoDB)")
@@ -156,8 +165,8 @@ def demo_long_term_memory() -> None:
     # ------------------------------------------------------------------
     subdiv("Step A — Persisting member info to DynamoDB")
     member_context = {
-        "transaction_id": MEMBER_PK,       # table's partition key
-        "member_id": "AET-889221",
+        "transaction_id": MEMBER_PK,  # table's partition key
+        "member_id": "AET-889221",  # phi-ok — synthetic test ID
         "insurance": "Aetna",
         "plan_type": "PPO",
         "service_history": "knee surgery requested 2026-06-20",
@@ -172,7 +181,7 @@ def demo_long_term_memory() -> None:
     subdiv("Step B — Fresh session: loading context from DynamoDB")
     db_resp = table.get_item(Key={"transaction_id": MEMBER_PK})
     retrieved = db_resp.get("Item", {})
-    print(f"  Retrieved from DynamoDB:")
+    print("  Retrieved from DynamoDB:")
     print(f"  {json.dumps(retrieved, indent=4, default=str)}")
 
     # Build system prompt that carries the long-term context
@@ -183,7 +192,9 @@ def demo_long_term_memory() -> None:
 
     # Fresh messages — no conversation history at all
     fresh_messages = [
-        user_msg("What insurance does member AET-889221 have?")
+        user_msg(
+            "What insurance does member AET-889221 have?"  # phi-ok — synthetic test ID
+        )
     ]
 
     subdiv("Step B — Asking Claude (empty conversation history)")
@@ -193,7 +204,7 @@ def demo_long_term_memory() -> None:
     reply, usage = converse(fresh_messages, system=system_prompt)
     print(f"  Claude : {reply}")
     print()
-    print(f"  >> Token usage:")
+    print("  >> Token usage:")
     print(f"     Input tokens  : {usage.get('inputTokens', 0)}")
     print(f"     Output tokens : {usage.get('outputTokens', 0)}")
 
@@ -207,7 +218,7 @@ def demo_long_term_memory() -> None:
 # to keep the demo deterministic.
 ELIGIBILITY_TURNS = [
     # Turn 1 — member intro
-    "Hi, I'm a member with Aetna insurance. My member ID is AET-889221.",
+    "Hi, I'm a member with Aetna insurance. My member ID is AET-889221.",  # phi-ok — synthetic test ID  # noqa: E501
     # Turn 3 — answer Claude's question about service type
     "I need knee surgery — specifically a total knee replacement.",
     # Turn 5 — answer Claude's question about prior auth history
@@ -267,7 +278,7 @@ def demo_summarization() -> None:
     messages: list[dict] = []
 
     for turn_num, user_text in enumerate(ELIGIBILITY_TURNS, 1):
-        real_turn = turn_num * 2 - 1          # turns 1, 3, 5, 7
+        real_turn = turn_num * 2 - 1  # turns 1, 3, 5, 7
         print(f"  [Turn {real_turn}] User  : {user_text}")
         messages.append(user_msg(user_text))
 
@@ -285,17 +296,17 @@ def demo_summarization() -> None:
     # ------------------------------------------------------------------
     subdiv("Phase 2 — Summarizing turns 1-6 (keeping turns 7-8 intact)")
 
-    old_turns   = messages[:6]   # turns 1-6  (3 user + 3 assistant)
+    old_turns = messages[:6]  # turns 1-6  (3 user + 3 assistant)
     recent_turns = messages[6:]  # turns 7-8  (1 user + 1 assistant)
 
     transcript = messages_to_transcript(old_turns)
-    summary_request = [
-        user_msg(f"{SUMMARIZE_PROMPT}\n\n---\n{transcript}")
-    ]
+    summary_request = [user_msg(f"{SUMMARIZE_PROMPT}\n\n---\n{transcript}")]
     summary_text, summary_usage = converse(summary_request)
 
-    print(f"  Summarization call — input tokens : {summary_usage.get('inputTokens', 0)}")
-    print(f"  Summary produced:\n")
+    print(
+        f"  Summarization call — input tokens : {summary_usage.get('inputTokens', 0)}"
+    )
+    print("  Summary produced:\n")
     # indent each line of the summary
     for line in summary_text.splitlines():
         print(f"    {line}")
@@ -308,18 +319,28 @@ def demo_summarization() -> None:
 
     compressed_messages = (
         [user_msg(f"[CONVERSATION SUMMARY]\n{summary_text}")]
-        + [assistant_msg("Understood. I have the full context from our earlier discussion.")]
+        + [
+            assistant_msg(
+                "Understood. I have the full context from our earlier discussion."
+            )
+        ]
         + recent_turns
     )
 
     compressed_token_count = count_tokens_in_messages(compressed_messages)
 
-    saved   = full_token_count - compressed_token_count
-    pct     = (saved / full_token_count * 100) if full_token_count else 0
+    saved = full_token_count - compressed_token_count
+    pct = (saved / full_token_count * 100) if full_token_count else 0
 
-    print(f"  Original  history  ({len(messages)} messages) : {full_token_count:>5} input tokens")
-    print(f"  Compressed history ({len(compressed_messages)} messages) : {compressed_token_count:>5} input tokens")
-    print(f"  Tokens saved                          : {saved:>5}  ({pct:.1f}% reduction)")
+    print(
+        f"  Original  history  ({len(messages)} messages) : {full_token_count:>5} input tokens"  # noqa: E501
+    )
+    print(
+        f"  Compressed history ({len(compressed_messages)} messages) : {compressed_token_count:>5} input tokens"  # noqa: E501
+    )
+    print(
+        f"  Tokens saved                          : {saved:>5}  ({pct:.1f}% reduction)"
+    )
 
     # ------------------------------------------------------------------
     # Phase 4: verify Claude still has full context after compression
@@ -337,8 +358,10 @@ def demo_summarization() -> None:
 
     print(f"  Claude : {final_reply}")
     print()
-    print(f"  >> Final call input tokens (compressed history) : "
-          f"{final_usage.get('inputTokens', 0)}")
+    print(
+        f"  >> Final call input tokens (compressed history) : "
+        f"{final_usage.get('inputTokens', 0)}"
+    )
 
 
 # ===========================================================================

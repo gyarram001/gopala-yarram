@@ -12,7 +12,7 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 TRANSACTION = {
-    "member_id": "AET-889221",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
     "payer_name": "Aetna",
     "service_date": "2026-06-20",
     "service_type": "knee surgery",
@@ -42,7 +42,13 @@ def call_bedrock(system_prompt: str, user_prompt: str) -> dict:
 
 
 def parse_json(raw: str) -> dict:
-    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    cleaned = (
+        raw.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
     return json.loads(cleaned)
 
 
@@ -53,7 +59,7 @@ def divider(title: str):
 
 
 def print_step_result(step: int, label: str, result: dict, elapsed: float):
-    print(f"\n  Response:")
+    print("\n  Response:")
     try:
         parsed = parse_json(result["text"])
         print(json.dumps(parsed, indent=4))
@@ -86,7 +92,7 @@ if __name__ == "__main__":
         "service_date is valid if it is within 90 days before or after today.\n\n"
         f"{TRANSACTION_TEXT}\n\n"
         "Return exactly:\n"
-        '{"is_valid": <bool>, "missing_fields": [<strings>], "invalid_fields": [<strings>]}'
+        '{"is_valid": <bool>, "missing_fields": [<strings>], "invalid_fields": [<strings>]}'  # noqa: E501
     )
 
     t0 = time.time()
@@ -179,12 +185,22 @@ if __name__ == "__main__":
     divider("CHAIN SUMMARY")
     print(f"\n  {'Step':<35} {'In':>6} {'Out':>6} {'Time':>8}")
     print(f"  {'-'*35} {'------':>6} {'------':>6} {'--------':>8}")
-    print(f"  {'Step 1 — Validation':<35} {step1['input_tokens']:>6} {step1['output_tokens']:>6} {elapsed_1:>7.2f}s")
-    print(f"  {'Step 2 — Payer Requirements':<35} {step2['input_tokens']:>6} {step2['output_tokens']:>6} {elapsed_2:>7.2f}s")
-    print(f"  {'Step 3 — Risk Assessment':<35} {step3['input_tokens']:>6} {step3['output_tokens']:>6} {elapsed_3:>7.2f}s")
-    print(f"  {'Step 4 — Recommended Action':<35} {step4['input_tokens']:>6} {step4['output_tokens']:>6} {elapsed_4:>7.2f}s")
+    print(
+        f"  {'Step 1 — Validation':<35} {step1['input_tokens']:>6} {step1['output_tokens']:>6} {elapsed_1:>7.2f}s"  # noqa: E501
+    )
+    print(
+        f"  {'Step 2 — Payer Requirements':<35} {step2['input_tokens']:>6} {step2['output_tokens']:>6} {elapsed_2:>7.2f}s"  # noqa: E501
+    )
+    print(
+        f"  {'Step 3 — Risk Assessment':<35} {step3['input_tokens']:>6} {step3['output_tokens']:>6} {elapsed_3:>7.2f}s"  # noqa: E501
+    )
+    print(
+        f"  {'Step 4 — Recommended Action':<35} {step4['input_tokens']:>6} {step4['output_tokens']:>6} {elapsed_4:>7.2f}s"  # noqa: E501
+    )
     print(f"  {'-'*35} {'------':>6} {'------':>6} {'--------':>8}")
-    print(f"  {'TOTAL':<35} {total_input_tokens:>6} {total_output_tokens:>6} {total_elapsed:>7.2f}s")
+    print(
+        f"  {'TOTAL':<35} {total_input_tokens:>6} {total_output_tokens:>6} {total_elapsed:>7.2f}s"  # noqa: E501
+    )
 
     print("\n" + "█" * 70)
     print("  TAKEAWAYS")

@@ -30,7 +30,7 @@ SYSTEM_PROMPT = (
 )
 
 TRANSACTION = {
-    "member_id": "AET-889221",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
     "payer_name": "Aetna",
     "service_date": "2026-06-20",
     "service_type": "knee surgery",
@@ -41,6 +41,7 @@ TRANSACTION = {
 # Mock tool implementations (no real API calls)
 # ---------------------------------------------------------------------------
 
+
 def check_payer_requirements(payer_name: str, service_type: str) -> dict:
     """Return payer-specific prior-auth requirements."""
     return {
@@ -49,7 +50,9 @@ def check_payer_requirements(payer_name: str, service_type: str) -> dict:
     }
 
 
-def lookup_member_history(member_id: str) -> dict:
+def lookup_member_history(
+    member_id: str,  # phi-ok — function parameter, not real PHI
+) -> dict:
     """Return the member's claim and prior-auth history."""
     return {
         "previous_claims": 2,
@@ -99,11 +102,11 @@ TOOL_CONFIG = {
                         "properties": {
                             "payer_name": {
                                 "type": "string",
-                                "description": "Name of the insurance payer (e.g. Aetna).",
+                                "description": "Name of the insurance payer (e.g. Aetna).",  # noqa: E501
                             },
                             "service_type": {
                                 "type": "string",
-                                "description": "Type of medical service (e.g. knee surgery).",
+                                "description": "Type of medical service (e.g. knee surgery).",  # noqa: E501
                             },
                         },
                         "required": ["payer_name", "service_type"],
@@ -159,6 +162,7 @@ TOOL_CONFIG = {
 # Helper: dispatch a tool call — catches exceptions and returns error payload
 # ---------------------------------------------------------------------------
 
+
 def dispatch_tool(tool_name: str, tool_input: dict) -> tuple[dict, bool]:
     """Call the matching Python function.
 
@@ -178,6 +182,7 @@ def dispatch_tool(tool_name: str, tool_input: dict) -> tuple[dict, bool]:
 # Helper: extract all tool-use blocks from a Converse response
 # ---------------------------------------------------------------------------
 
+
 def extract_tool_uses(response: dict) -> list[dict]:
     """Return a list of tool-use content blocks from the model response."""
     tool_uses = []
@@ -191,6 +196,7 @@ def extract_tool_uses(response: dict) -> list[dict]:
 # Helper: pretty-print the assistant's text content (if any)
 # ---------------------------------------------------------------------------
 
+
 def print_text_content(response: dict) -> None:
     for block in response.get("output", {}).get("message", {}).get("content", []):
         if "text" in block:
@@ -200,6 +206,7 @@ def print_text_content(response: dict) -> None:
 # ---------------------------------------------------------------------------
 # Main agentic loop
 # ---------------------------------------------------------------------------
+
 
 def run_agentic_loop() -> None:
     client = boto3.client("bedrock-runtime", region_name=REGION)
@@ -217,7 +224,9 @@ def run_agentic_loop() -> None:
 
     print("=" * 70)
     print("AGENTIC LOOP DEMO — Healthcare Eligibility Agent")
-    print(f"(MAX_ITERATIONS={MAX_ITERATIONS}, tool fault injection: get_diagnosis_info)")
+    print(
+        f"(MAX_ITERATIONS={MAX_ITERATIONS}, tool fault injection: get_diagnosis_info)"
+    )
     print("=" * 70)
     print("\nTransaction submitted:")
     print(json.dumps(TRANSACTION, indent=2))
@@ -230,8 +239,10 @@ def run_agentic_loop() -> None:
         # Safety guard: prevent infinite loops
         # ----------------------------------------------------------------
         if iteration >= MAX_ITERATIONS:
-            print(f"WARNING: reached MAX_ITERATIONS ({MAX_ITERATIONS}). "
-                  "Terminating loop to prevent runaway execution.")
+            print(
+                f"WARNING: reached MAX_ITERATIONS ({MAX_ITERATIONS}). "
+                "Terminating loop to prevent runaway execution."
+            )
             break
 
         iteration += 1
@@ -250,12 +261,14 @@ def run_agentic_loop() -> None:
         # Accumulate token usage
         # ----------------------------------------------------------------
         usage = response.get("usage", {})
-        iter_input  = usage.get("inputTokens", 0)
+        iter_input = usage.get("inputTokens", 0)
         iter_output = usage.get("outputTokens", 0)
-        total_input_tokens  += iter_input
+        total_input_tokens += iter_input
         total_output_tokens += iter_output
         print(f"  Tokens this call  : {iter_input} in / {iter_output} out")
-        print(f"  Tokens cumulative : {total_input_tokens} in / {total_output_tokens} out")
+        print(
+            f"  Tokens cumulative : {total_input_tokens} in / {total_output_tokens} out"
+        )
         print()
 
         stop_reason = response.get("stopReason", "")
@@ -274,8 +287,8 @@ def run_agentic_loop() -> None:
 
             for tool_use in tool_uses:
                 tool_use_id = tool_use["toolUseId"]
-                tool_name   = tool_use["name"]
-                tool_input  = tool_use.get("input", {})
+                tool_name = tool_use["name"]
+                tool_input = tool_use.get("input", {})
 
                 print(f"  Tool called : {tool_name}")
                 print(f"  Tool input  : {json.dumps(tool_input, indent=4)}")
@@ -283,7 +296,7 @@ def run_agentic_loop() -> None:
                 result_obj, is_error = dispatch_tool(tool_name, tool_input)
 
                 if is_error:
-                    print(f"  *** TOOL ERROR (caught, forwarding to Claude) ***")
+                    print("  *** TOOL ERROR (caught, forwarding to Claude) ***")
                     print(f"  Error detail: {result_obj['error']}")
                 else:
                     print(f"  Tool result : {json.dumps(result_obj, indent=4)}")

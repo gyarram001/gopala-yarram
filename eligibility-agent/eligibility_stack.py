@@ -89,6 +89,4 @@ class EligibilityStack(Stack):
         )
 
         # SQS event source — process one message at a time
-        fn.add_event_source(
-            event_sources.SqsEventSource(queue, batch_size=1)
-        )
+        fn.add_event_source(event_sources.SqsEventSource(queue, batch_size=1))

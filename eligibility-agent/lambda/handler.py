@@ -12,17 +12,27 @@ TABLE_NAME = os.environ["DYNAMODB_TABLE_NAME"]
 
 
 def parse_bedrock_json(raw: str, transaction_id: str) -> dict:
-    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    cleaned = (
+        raw.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as e:
-        print(json.dumps({
-            "level": "ERROR",
-            "message": "Failed to parse Bedrock response as JSON",
-            "transaction_id": transaction_id,
-            "parse_error": str(e),
-            "raw_response": raw,
-        }))
+        print(
+            json.dumps(
+                {
+                    "level": "ERROR",
+                    "message": "Failed to parse Bedrock response as JSON",
+                    "transaction_id": transaction_id,
+                    "parse_error": str(e),
+                    "raw_response": raw,
+                }
+            )
+        )
         return {"parse_error": str(e), "raw_response": raw}
 
 
@@ -32,7 +42,9 @@ def handler(event, context):
     for record in event["Records"]:
         body = json.loads(record["body"])
 
-        member_id = body.get("member_id")
+        member_id = body.get(  # phi-ok — reading from SQS body, not hardcoded PHI
+            "member_id"
+        )
         payer_name = body.get("payer_name")
         service_date = body.get("service_date")
         service_type = body.get("service_type")
@@ -66,13 +78,17 @@ def handler(event, context):
         raw_text = response["output"]["message"]["content"][0]["text"]
 
         if stop_reason == "max_tokens":
-            print(json.dumps({
-                "level": "WARNING",
-                "message": "Bedrock response truncated — maxTokens limit reached",
-                "transaction_id": transaction_id,
-                "member_id": member_id,
-                "stop_reason": stop_reason,
-            }))
+            print(
+                json.dumps(
+                    {
+                        "level": "WARNING",
+                        "message": "Bedrock response truncated — maxTokens limit reached",  # noqa: E501
+                        "transaction_id": transaction_id,
+                        "member_id": member_id,
+                        "stop_reason": stop_reason,
+                    }
+                )
+            )
 
             item = {
                 "transaction_id": transaction_id,
@@ -80,7 +96,7 @@ def handler(event, context):
                 "payer_name": payer_name,
                 "service_date": service_date,
                 "service_type": service_type,
-                "analysis_error": "TRUNCATED — Bedrock response hit maxTokens limit; output is incomplete",
+                "analysis_error": "TRUNCATED — Bedrock response hit maxTokens limit; output is incomplete",  # noqa: E501
                 "processed_at": datetime.now(timezone.utc).isoformat(),
             }
         else:
@@ -98,11 +114,15 @@ def handler(event, context):
 
         table.put_item(Item=item)
 
-        print(json.dumps({
-            "transaction_id": transaction_id,
-            "member_id": member_id,
-            "stop_reason": stop_reason,
-            "analysis": analysis if stop_reason != "max_tokens" else None,
-        }))
+        print(
+            json.dumps(
+                {
+                    "transaction_id": transaction_id,
+                    "member_id": member_id,
+                    "stop_reason": stop_reason,
+                    "analysis": analysis if stop_reason != "max_tokens" else None,
+                }
+            )
+        )
 
     return {"statusCode": 200}

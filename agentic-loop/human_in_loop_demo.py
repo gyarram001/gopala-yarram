@@ -26,41 +26,41 @@ import boto3
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_ID       = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-REGION         = "us-east-1"
-PROFILE        = "cdk-dev"
-TABLE_NAME     = "eligibility-decisions"
+MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+REGION = "us-east-1"
+PROFILE = "cdk-dev"
+TABLE_NAME = "eligibility-decisions"
 SNS_TOPIC_NAME = "eligibility-human-review"
 
 POLL_INTERVAL_SECONDS = 1
-MAX_POLL_ATTEMPTS     = 10
+MAX_POLL_ATTEMPTS = 10
 
 # ---------------------------------------------------------------------------
 # AWS session + clients
 # ---------------------------------------------------------------------------
-session         = boto3.Session(profile_name=PROFILE, region_name=REGION)
-bedrock         = session.client("bedrock-runtime")
-dynamodb        = session.resource("dynamodb")
+session = boto3.Session(profile_name=PROFILE, region_name=REGION)
+bedrock = session.client("bedrock-runtime")
+dynamodb = session.resource("dynamodb")
 dynamodb_client = session.client("dynamodb")
-sns             = session.client("sns")
+sns = session.client("sns")
 
 # ---------------------------------------------------------------------------
 # Transactions
 # ---------------------------------------------------------------------------
 HIGH_RISK_TRANSACTION = {
-    "member_id":      "AET-889221",
-    "payer_name":     "Aetna",
-    "service_date":   "2026-06-20",
-    "service_type":   "experimental cancer treatment",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
+    "payer_name": "Aetna",
+    "service_date": "2026-06-20",
+    "service_type": "experimental cancer treatment",
     "diagnosis_code": "C34.11",
     "estimated_cost": "$85,000",
 }
 
 LOW_RISK_TRANSACTION = {
-    "member_id":      "UHC-445521",
-    "payer_name":     "United",
-    "service_date":   "2026-06-25",
-    "service_type":   "routine physical",
+    "member_id": "UHC-445521",  # phi-ok — synthetic test ID
+    "payer_name": "United",
+    "service_date": "2026-06-25",
+    "service_type": "routine physical",
     "diagnosis_code": "Z00.00",
     "estimated_cost": "$150",
 }
@@ -83,6 +83,7 @@ ANALYSIS_SYSTEM_PROMPT = (
 # Print helpers
 # ---------------------------------------------------------------------------
 
+
 def divider(title: str) -> None:
     print()
     print("=" * 70)
@@ -101,6 +102,7 @@ def subdiv(label: str) -> None:
 # Timestamp helpers
 # ---------------------------------------------------------------------------
 
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -112,6 +114,7 @@ def expires_iso() -> str:
 # ---------------------------------------------------------------------------
 # Bedrock response helpers
 # ---------------------------------------------------------------------------
+
 
 def extract_text(response: dict) -> str:
     """Concatenate all text blocks from a Bedrock Converse response."""
@@ -127,9 +130,9 @@ def parse_json_response(text: str) -> dict:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         lines = cleaned.splitlines()
-        lines = lines[1:]                              # drop opening fence line
+        lines = lines[1:]  # drop opening fence line
         if lines and lines[-1].strip().startswith("```"):
-            lines = lines[:-1]                         # drop closing fence line
+            lines = lines[:-1]  # drop closing fence line
         cleaned = "\n".join(lines).strip()
     return json.loads(cleaned)
 
@@ -137,6 +140,7 @@ def parse_json_response(text: str) -> dict:
 # ---------------------------------------------------------------------------
 # DynamoDB helpers
 # ---------------------------------------------------------------------------
+
 
 def float_to_decimal(obj: object) -> object:
     """Recursively convert Python floats to Decimal for DynamoDB storage."""
@@ -172,10 +176,11 @@ def ensure_table():
 # SNS helper
 # ---------------------------------------------------------------------------
 
+
 def ensure_sns_topic() -> str:
     """Return the SNS topic ARN, creating the topic if it does not exist."""
-    resp = sns.create_topic(Name=SNS_TOPIC_NAME)   # idempotent
-    arn  = resp["TopicArn"]
+    resp = sns.create_topic(Name=SNS_TOPIC_NAME)  # idempotent
+    arn = resp["TopicArn"]
     print(f"  [setup] SNS topic ready: {arn}")
     return arn
 
@@ -184,15 +189,13 @@ def ensure_sns_topic() -> str:
 # Step 1 — Bedrock transaction analysis
 # ---------------------------------------------------------------------------
 
+
 def analyze_transaction(transaction: dict) -> dict:
     """Call Bedrock Converse to assess risk and return the parsed JSON analysis."""
     subdiv("Step 1 — Analyzing transaction with Bedrock")
     print(f"  Transaction:\n{json.dumps(transaction, indent=4)}\n")
 
-    user_message = (
-        "Analyze this transaction:\n\n"
-        + json.dumps(transaction, indent=2)
-    )
+    user_message = "Analyze this transaction:\n\n" + json.dumps(transaction, indent=2)
 
     response = bedrock.converse(
         modelId=MODEL_ID,
@@ -204,7 +207,7 @@ def analyze_transaction(transaction: dict) -> dict:
     analysis = parse_json_response(raw_text)
 
     usage = response.get("usage", {})
-    print(f"  AI analysis:")
+    print("  AI analysis:")
     print(f"    risk_level            : {analysis.get('risk_level')}")
     print(f"    confidence            : {analysis.get('confidence')}")
     print(f"    requires_human_review : {analysis.get('requires_human_review')}")
@@ -222,6 +225,7 @@ def analyze_transaction(transaction: dict) -> dict:
 # Step 2 — Save for human review + SNS notification
 # ---------------------------------------------------------------------------
 
+
 def save_for_review(
     table,
     sns_topic_arn: str,
@@ -233,18 +237,20 @@ def save_for_review(
 
     transaction_id = f"REVIEW#{uuid.uuid4()}"
 
-    item = float_to_decimal({
-        "transaction_id": transaction_id,
-        "status":         "PENDING_REVIEW",
-        "transaction":    transaction,
-        "ai_analysis":    analysis,
-        "created_at":     now_iso(),
-        "expires_at":     expires_iso(),
-    })
+    item = float_to_decimal(
+        {
+            "transaction_id": transaction_id,
+            "status": "PENDING_REVIEW",
+            "transaction": transaction,
+            "ai_analysis": analysis,
+            "created_at": now_iso(),
+            "expires_at": expires_iso(),
+        }
+    )
     table.put_item(Item=item)
 
     print(f"  Transaction saved for human review: {transaction_id}")
-    print(f"  Agent paused — waiting for human approval")
+    print("  Agent paused — waiting for human approval")
 
     # Notify the human reviewer
     sns.publish(
@@ -269,6 +275,7 @@ def save_for_review(
 # Simulate human review  (pauses 2 s, then writes APPROVED to DynamoDB)
 # ---------------------------------------------------------------------------
 
+
 def simulate_human_approval(table, transaction_id: str) -> None:
     """Sleep 2 seconds to simulate human review latency, then approve."""
     subdiv("Simulating human review (sleeping 2 seconds...)")
@@ -284,20 +291,21 @@ def simulate_human_approval(table, transaction_id: str) -> None:
         ),
         ExpressionAttributeNames={"#st": "status"},
         ExpressionAttributeValues={
-            ":status":   "APPROVED",
+            ":status": "APPROVED",
             ":reviewer": "john.smith@company.com",
-            ":notes":    review_notes,
-            ":ts":       now_iso(),
+            ":notes": review_notes,
+            ":ts": now_iso(),
         },
     )
-    print(f"  Human reviewer : john.smith@company.com")
+    print("  Human reviewer : john.smith@company.com")
     print(f"  Review notes   : {review_notes}")
-    print(f"  DynamoDB status updated → APPROVED")
+    print("  DynamoDB status updated → APPROVED")
 
 
 # ---------------------------------------------------------------------------
 # Step 3a — Poll DynamoDB until status is no longer PENDING_REVIEW
 # ---------------------------------------------------------------------------
+
 
 def poll_for_decision(table, transaction_id: str) -> dict:
     """Poll every second (up to MAX_POLL_ATTEMPTS) until status changes."""
@@ -307,14 +315,14 @@ def poll_for_decision(table, transaction_id: str) -> dict:
     )
 
     for attempt in range(1, MAX_POLL_ATTEMPTS + 1):
-        resp   = table.get_item(Key={"transaction_id": transaction_id})
+        resp = table.get_item(Key={"transaction_id": transaction_id})
         record = resp.get("Item", {})
         status = record.get("status", "UNKNOWN")
 
         print(f"  Poll {attempt}/{MAX_POLL_ATTEMPTS}: status = {status}")
 
         if status != "PENDING_REVIEW":
-            print(f"  Human approved — agent resuming")
+            print("  Human approved — agent resuming")
             return record
 
         time.sleep(POLL_INTERVAL_SECONDS)
@@ -328,6 +336,7 @@ def poll_for_decision(table, transaction_id: str) -> dict:
 # ---------------------------------------------------------------------------
 # Step 3b — Final Bedrock call after human approval
 # ---------------------------------------------------------------------------
+
 
 def get_final_recommendation(review_notes: str) -> str:
     """Call Bedrock to produce final next steps after human approval."""
@@ -344,7 +353,7 @@ def get_final_recommendation(review_notes: str) -> str:
         messages=[{"role": "user", "content": [{"text": prompt}]}],
     )
 
-    text  = extract_text(response)
+    text = extract_text(response)
     usage = response.get("usage", {})
     print(
         f"  Final recommendation "
@@ -361,6 +370,7 @@ def get_final_recommendation(review_notes: str) -> str:
 # Path A — HIGH risk (pauses for human review)
 # ---------------------------------------------------------------------------
 
+
 def run_high_risk_path(table, sns_topic_arn: str) -> None:
     divider("PATH A — HIGH RISK  |  experimental cancer treatment  |  $85,000")
 
@@ -370,8 +380,10 @@ def run_high_risk_path(table, sns_topic_arn: str) -> None:
     if not analysis.get("requires_human_review"):
         # Unexpected — AI classified as not needing review; skip pause
         risk = analysis.get("risk_level", "UNKNOWN")
-        print(f"\n  AI returned requires_human_review=False (risk={risk}). "
-              "Auto-approving.\n")
+        print(
+            f"\n  AI returned requires_human_review=False (risk={risk}). "
+            "Auto-approving.\n"
+        )
         return
 
     # Step 2 — save to DynamoDB + SNS
@@ -383,7 +395,7 @@ def run_high_risk_path(table, sns_topic_arn: str) -> None:
     simulate_human_approval(table, transaction_id)
 
     # Step 3 — poll + final Bedrock call
-    record       = poll_for_decision(table, transaction_id)
+    record = poll_for_decision(table, transaction_id)
     review_notes = record.get("review_notes", "Approved.")
     get_final_recommendation(review_notes)
 
@@ -394,6 +406,7 @@ def run_high_risk_path(table, sns_topic_arn: str) -> None:
 # ---------------------------------------------------------------------------
 # Path B — LOW risk (auto-approves, no pause)
 # ---------------------------------------------------------------------------
+
 
 def run_low_risk_path(table) -> None:
     divider("PATH B — LOW RISK  |  routine physical  |  $150")
@@ -410,7 +423,7 @@ def run_low_risk_path(table) -> None:
         return
 
     risk_level = analysis.get("risk_level", "UNKNOWN")
-    action     = analysis.get("recommended_action", "Proceed.")
+    action = analysis.get("recommended_action", "Proceed.")
 
     subdiv("Step 4 — Auto-approving (no human review needed)")
     print(f"  Risk level : {risk_level}")
@@ -428,11 +441,11 @@ def run_low_risk_path(table) -> None:
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("  HUMAN-IN-THE-LOOP DEMO")
+    print("  HUMAN-IN-THE-LOOP DEMO")  # phi-ok — not a member ID
     print("  Bedrock Converse API + DynamoDB + SNS  |  us-east-1  |  cdk-dev")
     print("=" * 70)
 
-    table         = ensure_table()
+    table = ensure_table()
     sns_topic_arn = ensure_sns_topic()
 
     run_high_risk_path(table, sns_topic_arn)

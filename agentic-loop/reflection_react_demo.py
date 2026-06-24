@@ -13,9 +13,9 @@ import boto3
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_ID       = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-REGION         = "us-east-1"
-PROFILE        = "cdk-dev"
+MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+REGION = "us-east-1"
+PROFILE = "cdk-dev"
 MAX_ITERATIONS = 10
 
 session = boto3.Session(profile_name=PROFILE, region_name=REGION)
@@ -25,10 +25,10 @@ bedrock = session.client("bedrock-runtime")
 # Transaction (shared across all demos)
 # ---------------------------------------------------------------------------
 TRANSACTION = {
-    "member_id":      "AET-889221",
-    "payer_name":     "Aetna",
-    "service_date":   "2026-06-20",
-    "service_type":   "knee surgery",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
+    "payer_name": "Aetna",
+    "service_date": "2026-06-20",
+    "service_type": "knee surgery",
     "diagnosis_code": "M17.11",
     "estimated_cost": "$45,000",
 }
@@ -68,6 +68,7 @@ REACT_SYSTEM = (
 # Tool implementations
 # ---------------------------------------------------------------------------
 
+
 def check_payer_requirements(payer_name: str, service_type: str) -> dict:
     """Return payer-specific prior-auth requirements."""
     return {
@@ -83,9 +84,9 @@ def check_payer_requirements(payer_name: str, service_type: str) -> dict:
 def get_cost_threshold(payer_name: str) -> dict:
     """Return auto-approve and senior-review cost thresholds for a payer."""
     thresholds = {
-        "Aetna":  {"auto_approve_threshold": 5000,  "review_threshold": 25000},
-        "United": {"auto_approve_threshold": 3000,  "review_threshold": 20000},
-        "Cigna":  {"auto_approve_threshold": 4000,  "review_threshold": 22000},
+        "Aetna": {"auto_approve_threshold": 5000, "review_threshold": 25000},
+        "United": {"auto_approve_threshold": 3000, "review_threshold": 20000},
+        "Cigna": {"auto_approve_threshold": 4000, "review_threshold": 22000},
     }
     return thresholds.get(
         payer_name, {"auto_approve_threshold": 5000, "review_threshold": 25000}
@@ -94,7 +95,7 @@ def get_cost_threshold(payer_name: str) -> dict:
 
 TOOL_REGISTRY = {
     "check_payer_requirements": check_payer_requirements,
-    "get_cost_threshold":       get_cost_threshold,
+    "get_cost_threshold": get_cost_threshold,
 }
 
 TOOL_CONFIG = {
@@ -117,7 +118,7 @@ TOOL_CONFIG = {
                             },
                             "service_type": {
                                 "type": "string",
-                                "description": "Medical service type, e.g. knee surgery.",
+                                "description": "Medical service type, e.g. knee surgery.",  # noqa: E501
                             },
                         },
                         "required": ["payer_name", "service_type"],
@@ -153,6 +154,7 @@ TOOL_CONFIG = {
 # Print helpers
 # ---------------------------------------------------------------------------
 
+
 def divider(title: str) -> None:
     print()
     print("=" * 70)
@@ -174,7 +176,7 @@ def print_json_block(obj: dict, indent: int = 4) -> None:
 
 def print_token_usage(usage: dict, label: str = "") -> None:
     prefix = f"  [{label}]  " if label else "  "
-    total  = usage.get("inputTokens", 0) + usage.get("outputTokens", 0)
+    total = usage.get("inputTokens", 0) + usage.get("outputTokens", 0)
     print(
         f"{prefix}Tokens → "
         f"{usage.get('inputTokens', 0)} in / "
@@ -186,6 +188,7 @@ def print_token_usage(usage: dict, label: str = "") -> None:
 # ---------------------------------------------------------------------------
 # Bedrock response helpers
 # ---------------------------------------------------------------------------
+
 
 def extract_text(response: dict) -> str:
     """Concatenate all text blocks from a Bedrock Converse response."""
@@ -213,7 +216,7 @@ def parse_json_response(text: str) -> dict:
     """Parse JSON from a Bedrock text response, stripping markdown fences."""
     cleaned = text.strip()
     if cleaned.startswith("```"):
-        lines   = cleaned.splitlines()[1:]
+        lines = cleaned.splitlines()[1:]
         if lines and lines[-1].strip().startswith("```"):
             lines = lines[:-1]
         cleaned = "\n".join(lines).strip()
@@ -235,6 +238,7 @@ def dispatch_tool(name: str, tool_input: dict) -> tuple[dict, bool]:
 # DEMO 1 — Baseline (no reflection, no tools)
 # ===========================================================================
 
+
 def demo_baseline() -> None:
     divider("DEMO 1 — Baseline  (single call, no reflection)")
     print("  Standard system prompt. One Bedrock call. No tools, no self-critique.\n")
@@ -244,13 +248,20 @@ def demo_baseline() -> None:
     response = bedrock.converse(
         modelId=MODEL_ID,
         system=[{"text": BASELINE_SYSTEM}],
-        messages=[{
-            "role":    "user",
-            "content": [{"text": "Analyze this transaction:\n\n" + json.dumps(TRANSACTION, indent=2)}],
-        }],
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "text": "Analyze this transaction:\n\n"
+                        + json.dumps(TRANSACTION, indent=2)
+                    }
+                ],
+            }
+        ],
     )
 
-    text  = extract_text(response)
+    text = extract_text(response)
     usage = response.get("usage", {})
 
     subdiv("Response")
@@ -274,6 +285,7 @@ def demo_baseline() -> None:
 # DEMO 2 — Reflection (two-pass self-critique)
 # ===========================================================================
 
+
 def demo_reflection() -> None:
     divider("DEMO 2 — Reflection  (two-pass self-critique)")
     print("  Pass 1: initial analysis.")
@@ -291,7 +303,7 @@ def demo_reflection() -> None:
     )
 
     pass1_text = extract_text(resp1)
-    usage1     = resp1.get("usage", {})
+    usage1 = resp1.get("usage", {})
 
     try:
         pass1_json = parse_json_response(pass1_text)
@@ -331,14 +343,14 @@ def demo_reflection() -> None:
         modelId=MODEL_ID,
         system=[{"text": BASELINE_SYSTEM}],
         messages=[
-            {"role": "user",      "content": [{"text": user_content}]},
+            {"role": "user", "content": [{"text": user_content}]},
             {"role": "assistant", "content": [{"text": pass1_text}]},
-            {"role": "user",      "content": [{"text": reflection_prompt}]},
+            {"role": "user", "content": [{"text": reflection_prompt}]},
         ],
     )
 
     pass2_text = extract_text(resp2)
-    usage2     = resp2.get("usage", {})
+    usage2 = resp2.get("usage", {})
 
     try:
         pass2_json = parse_json_response(pass2_text)
@@ -372,15 +384,18 @@ def demo_reflection() -> None:
     else:
         print("  Fields changed but no changes_made list returned.")
 
-    total_in  = usage1.get("inputTokens",  0) + usage2.get("inputTokens",  0)
+    total_in = usage1.get("inputTokens", 0) + usage2.get("inputTokens", 0)
     total_out = usage1.get("outputTokens", 0) + usage2.get("outputTokens", 0)
     print()
-    print_token_usage({"inputTokens": total_in, "outputTokens": total_out}, "Demo 2 total")
+    print_token_usage(
+        {"inputTokens": total_in, "outputTokens": total_out}, "Demo 2 total"
+    )
 
 
 # ===========================================================================
 # DEMO 3 — ReAct (Reason + Act agentic loop)
 # ===========================================================================
+
 
 def demo_react() -> None:
     divider("DEMO 3 — ReAct  (Reason + Act agentic loop with tool use)")
@@ -392,12 +407,19 @@ def demo_react() -> None:
     print("  Transaction:")
     print_json_block(TRANSACTION)
 
-    messages = [{
-        "role":    "user",
-        "content": [{"text": "Analyze this transaction:\n\n" + json.dumps(TRANSACTION, indent=2)}],
-    }]
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "text": "Analyze this transaction:\n\n"
+                    + json.dumps(TRANSACTION, indent=2)
+                }
+            ],
+        }
+    ]
 
-    total_input_tokens  = 0
+    total_input_tokens = 0
     total_output_tokens = 0
     step = 0
 
@@ -415,13 +437,13 @@ def demo_react() -> None:
             toolConfig=TOOL_CONFIG,
         )
 
-        usage               = response.get("usage", {})
-        total_input_tokens  += usage.get("inputTokens",  0)
+        usage = response.get("usage", {})
+        total_input_tokens += usage.get("inputTokens", 0)
         total_output_tokens += usage.get("outputTokens", 0)
 
-        stop_reason       = response.get("stopReason", "")
+        stop_reason = response.get("stopReason", "")
         assistant_message = response["output"]["message"]
-        texts, tool_uses  = extract_texts_and_tool_uses(response)
+        texts, tool_uses = extract_texts_and_tool_uses(response)
 
         # Append the full assistant turn to history
         messages.append(assistant_message)
@@ -439,8 +461,8 @@ def demo_react() -> None:
 
             for tu in tool_uses:
                 tool_use_id = tu["toolUseId"]
-                tool_name   = tu["name"]
-                tool_input  = tu.get("input", {})
+                tool_name = tu["name"]
+                tool_input = tu.get("input", {})
 
                 subdiv(f"Step {step}  ACTION  →  {tool_name}")
                 print(f"    Input: {json.dumps(tool_input)}")
@@ -452,13 +474,15 @@ def demo_react() -> None:
                 if is_error:
                     print("    *** tool returned an error ***")
 
-                tool_result_contents.append({
-                    "toolResult": {
-                        "toolUseId": tool_use_id,
-                        "content":   [{"json": result}],
-                        **({"status": "error"} if is_error else {}),
+                tool_result_contents.append(
+                    {
+                        "toolResult": {
+                            "toolUseId": tool_use_id,
+                            "content": [{"json": result}],
+                            **({"status": "error"} if is_error else {}),
+                        }
                     }
-                })
+                )
 
             messages.append({"role": "user", "content": tool_result_contents})
 

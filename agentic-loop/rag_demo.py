@@ -16,9 +16,9 @@ import boto3
 # Configuration
 # ---------------------------------------------------------------------------
 CLAUDE_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-EMBED_MODEL_ID  = "amazon.titan-embed-text-v2:0"
-REGION          = "us-east-1"
-PROFILE         = "cdk-dev"
+EMBED_MODEL_ID = "amazon.titan-embed-text-v2:0"
+REGION = "us-east-1"
+PROFILE = "cdk-dev"
 
 session = boto3.Session(profile_name=PROFILE, region_name=REGION)
 bedrock = session.client("bedrock-runtime")
@@ -64,19 +64,19 @@ POLICY_CHUNKS = [
             "Experimental, investigational, or unproven treatments are not covered "
             "under standard Aetna benefit plans. Members may submit a formal appeal "
             "with supporting clinical trial documentation, peer-reviewed literature, "
-            "and a letter of medical necessity from the treating physician. All appeals "
+            "and a letter of medical necessity from the treating physician. All appeals "  # noqa: E501
             "for experimental treatments require review by Aetna's Medical Director. "
-            "Processing time for experimental treatment appeals is 15–30 calendar days. "
+            "Processing time for experimental treatment appeals is 15–30 calendar days. "  # noqa: E501
             "Compassionate use exceptions may be granted in rare cases at the Medical "
             "Director's discretion. Members enrolled in an IRB-approved clinical trial "
-            "may be eligible for coverage of routine care costs associated with the trial "
+            "may be eligible for coverage of routine care costs associated with the trial "  # noqa: E501
             "under Aetna's Clinical Trial policy."
         ),
     },
     {
         "section": "Emergency Services",
         "text": (
-            "Aetna 2026 Policy — Emergency Services: No prior authorization is required "
+            "Aetna 2026 Policy — Emergency Services: No prior authorization is required "  # noqa: E501
             "for emergency medical services. Emergency services are covered regardless "
             "of whether the facility is in-network or out-of-network, consistent with "
             "federal law. Members or their representative must notify Aetna within "
@@ -84,7 +84,7 @@ POLICY_CHUNKS = [
             "possible. Failure to notify within this window does not result in denial "
             "but may require additional documentation. Post-stabilization care that "
             "continues beyond the emergency may require prior authorization. Ambulance "
-            "transport to the nearest appropriate facility is covered without prior auth."
+            "transport to the nearest appropriate facility is covered without prior auth."  # noqa: E501
         ),
     },
     {
@@ -113,6 +113,7 @@ AETNA_POLICY = "\n\n".join(
 # Step 2 — Build in-memory vector store using Titan embeddings
 # ---------------------------------------------------------------------------
 
+
 def embed(text: str) -> list[float]:
     """Generate an embedding vector using Bedrock Titan Embed v2."""
     response = bedrock.invoke_model(
@@ -131,11 +132,13 @@ def build_vector_store(chunks: list[dict]) -> list[dict]:
     store = []
     for chunk in chunks:
         embedding = embed(chunk["text"])
-        store.append({
-            "section":   chunk["section"],
-            "text":      chunk["text"],
-            "embedding": embedding,
-        })
+        store.append(
+            {
+                "section": chunk["section"],
+                "text": chunk["text"],
+                "embedding": embedding,
+            }
+        )
         print(f"  Indexed: {chunk['section']}")
     return store
 
@@ -144,9 +147,10 @@ def build_vector_store(chunks: list[dict]) -> list[dict]:
 # Step 3 — Cosine similarity retrieval
 # ---------------------------------------------------------------------------
 
+
 def cosine_similarity(a: list[float], b: list[float]) -> float:
     """Compute cosine similarity between two vectors (pure Python, no numpy)."""
-    dot   = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b))
     mag_a = math.sqrt(sum(x * x for x in a))
     mag_b = math.sqrt(sum(y * y for y in b))
     if mag_a == 0.0 or mag_b == 0.0:
@@ -177,6 +181,7 @@ def find_relevant_chunks(
 # Print helpers
 # ---------------------------------------------------------------------------
 
+
 def divider(title: str) -> None:
     print()
     print("=" * 70)
@@ -194,8 +199,8 @@ def subdiv(label: str) -> None:
 def wrap_print(text: str, indent: int = 4, width: int = 66) -> None:
     """Print text with left indent, wrapping at word boundaries."""
     prefix = " " * indent
-    words  = text.split()
-    line   = prefix
+    words = text.split()
+    line = prefix
     for word in words:
         if len(line) + len(word) + 1 > width + indent:
             print(line.rstrip())
@@ -209,6 +214,7 @@ def wrap_print(text: str, indent: int = 4, width: int = 66) -> None:
 # ---------------------------------------------------------------------------
 # Step 4 — Claude calls (with and without RAG context)
 # ---------------------------------------------------------------------------
+
 
 def ask_claude(prompt: str, system: str = "") -> tuple[str, dict]:
     """Single Bedrock Converse call; returns (text, usage)."""
@@ -262,8 +268,9 @@ def run_with_rag(
 # Demo runner — NO RAG vs WITH RAG for a single query
 # ---------------------------------------------------------------------------
 
+
 def run_comparison(query: str, vector_store: list[dict]) -> None:
-    print(f"\n  Query: \"{query}\"\n")
+    print(f'\n  Query: "{query}"\n')
 
     # ── No RAG ───────────────────────────────────────────────────────────────
     subdiv("NO RAG  (Claude with no policy context)")
@@ -271,8 +278,10 @@ def run_comparison(query: str, vector_store: list[dict]) -> None:
     wrap_print(no_rag_text)
     print()
     total = no_rag_usage.get("inputTokens", 0) + no_rag_usage.get("outputTokens", 0)
-    print(f"  Tokens: {no_rag_usage.get('inputTokens', 0)} in / "
-          f"{no_rag_usage.get('outputTokens', 0)} out / {total} total")
+    print(
+        f"  Tokens: {no_rag_usage.get('inputTokens', 0)} in / "
+        f"{no_rag_usage.get('outputTokens', 0)} out / {total} total"
+    )
 
     # ── With RAG ─────────────────────────────────────────────────────────────
     subdiv("WITH RAG  (Claude grounded in retrieved policy chunks)")
@@ -280,8 +289,10 @@ def run_comparison(query: str, vector_store: list[dict]) -> None:
     wrap_print(rag_text)
     print()
     total = rag_usage.get("inputTokens", 0) + rag_usage.get("outputTokens", 0)
-    print(f"  Tokens: {rag_usage.get('inputTokens', 0)} in / "
-          f"{rag_usage.get('outputTokens', 0)} out / {total} total")
+    print(
+        f"  Tokens: {rag_usage.get('inputTokens', 0)} in / "
+        f"{rag_usage.get('outputTokens', 0)} out / {total} total"
+    )
 
     subdiv("Retrieved chunks")
     for rank, chunk in enumerate(retrieved, 1):

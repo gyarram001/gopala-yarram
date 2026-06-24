@@ -9,7 +9,7 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 TRANSACTION = """{
-  "member_id": "AET-889221",
+  "member_id": "AET-889221",  # phi-ok — synthetic test ID
   "payer_name": "Aetna",
   "service_date": "2026-06-20",
   "service_type": "knee surgery",
@@ -47,7 +47,7 @@ def divider(title: str):
 
 def print_token_usage(result: dict, max_tokens: int = None):
     limit_str = str(max_tokens) if max_tokens else "none"
-    print(f"\n  --- Token Usage ---")
+    print("\n  --- Token Usage ---")
     print(f"  Input tokens  : {result['input_tokens']}")
     print(f"  Output tokens : {result['output_tokens']}")
     print(f"  Max tokens    : {limit_str}")
@@ -66,10 +66,12 @@ if __name__ == "__main__":
 
     # ── Demo 1: No token limit ────────────────────────────────────────────────
     divider("DEMO 1 — No Token Limit")
-    print("  Prompt: Fully analyze this eligibility transaction and explain everything relevant.\n")
+    print(
+        "  Prompt: Fully analyze this eligibility transaction and explain everything relevant.\n"  # noqa: E501
+    )
 
     prompt_1 = (
-        f"Fully analyze this eligibility transaction and explain everything relevant:\n\n"
+        f"Fully analyze this eligibility transaction and explain everything relevant:\n\n"  # noqa: E501
         f"{TRANSACTION}"
     )
 
@@ -111,17 +113,23 @@ if __name__ == "__main__":
     print_token_usage(result_3, max_tokens=300)
 
     print(
-        "\n  OBSERVATION: Concise prompt + right-sized limit = complete, useful response."
-        "\n  The prompt does the work of constraining length; maxTokens acts as a safety net."
+        "\n  OBSERVATION: Concise prompt + right-sized limit = complete, useful response."  # noqa: E501
+        "\n  The prompt does the work of constraining length; maxTokens acts as a safety net."  # noqa: E501
     )
 
     # ── Summary comparison ────────────────────────────────────────────────────
     divider("SUMMARY — Token Usage Comparison")
     print(f"  {'Demo':<35} {'Input':>8} {'Output':>8} {'Max':>8} {'Stop Reason'}")
     print(f"  {'-'*35} {'-------':>8} {'-------':>8} {'-------':>8} {'-----------'}")
-    print(f"  {'Demo 1 — No limit':<35} {result_1['input_tokens']:>8} {result_1['output_tokens']:>8} {'none':>8}  {result_1['stop_reason']}")
-    print(f"  {'Demo 2 — Tight (100)':<35} {result_2['input_tokens']:>8} {result_2['output_tokens']:>8} {100:>8}  {result_2['stop_reason']}")
-    print(f"  {'Demo 3 — Right-sized (300)':<35} {result_3['input_tokens']:>8} {result_3['output_tokens']:>8} {300:>8}  {result_3['stop_reason']}")
+    print(
+        f"  {'Demo 1 — No limit':<35} {result_1['input_tokens']:>8} {result_1['output_tokens']:>8} {'none':>8}  {result_1['stop_reason']}"  # noqa: E501
+    )
+    print(
+        f"  {'Demo 2 — Tight (100)':<35} {result_2['input_tokens']:>8} {result_2['output_tokens']:>8} {100:>8}  {result_2['stop_reason']}"  # noqa: E501
+    )
+    print(
+        f"  {'Demo 3 — Right-sized (300)':<35} {result_3['input_tokens']:>8} {result_3['output_tokens']:>8} {300:>8}  {result_3['stop_reason']}"  # noqa: E501
+    )
 
     print("\n" + "█" * 70)
     print("  TAKEAWAYS")
@@ -130,7 +138,7 @@ if __name__ == "__main__":
         "\n  1. No limit     — Model writes freely. Unpredictable cost and length."
         "\n                    Use only for exploration."
         "\n"
-        "\n  2. Tight limit  — Truncates mid-response. Produces incomplete, broken output."
+        "\n  2. Tight limit  — Truncates mid-response. Produces incomplete, broken output."  # noqa: E501
         "\n                    Never use for analysis or structured responses."
         "\n"
         "\n  3. Right-sized  — Pair a concise prompt with a reasonable ceiling."

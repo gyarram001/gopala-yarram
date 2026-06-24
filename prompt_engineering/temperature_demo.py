@@ -37,7 +37,7 @@ if __name__ == "__main__":
     print("  TEMPERATURE EFFECTS DEMO — Healthcare Eligibility")
     print(f"  Model : {MODEL_ID}")
     print("█" * 70)
-    print(f"\nPrompt: \"{PROMPT}\"\n")
+    print(f'\nPrompt: "{PROMPT}"\n')
 
     for temp in TEMPERATURES:
         divider(f"Temperature = {temp}")

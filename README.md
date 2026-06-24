@@ -1,31 +1,112 @@
-# AI Beginner Learning — Amazon Bedrock + Claude Demos
+# Amazon Bedrock Demos — Claude + AWS AI Engineering
 
-A hands-on learning repo for building AI-powered healthcare eligibility
-applications with **Amazon Bedrock**, **Claude Sonnet**, and AWS services.
-All demos use the `us-east-1` region and the `cdk-dev` AWS profile.
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white)
+![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-FF9900?style=flat-square&logo=amazonaws&logoColor=white)
+![AWS CDK](https://img.shields.io/badge/AWS-CDK-FF9900?style=flat-square&logo=amazonaws&logoColor=white)
+![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square&logo=pre-commit&logoColor=white)
+![Claude Sonnet](https://img.shields.io/badge/Claude-Sonnet_4.6-7B2FBE?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
-**Model used throughout:** `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
-(Bedrock cross-region inference)
+Hands-on demos for building AI-powered applications with **Amazon Bedrock**,
+**Claude Sonnet**, and AWS services. Domain: healthcare eligibility (270/271
+transactions, prior-auth decisions, payer routing). All demos use structured
+JSON output, `temperature=0.0`, and a PHI-safe pre-commit pipeline.
 
-**Default branch:** `main`
+**Model:** `us.anthropic.claude-sonnet-4-6` (Bedrock cross-region inference)
 
 ---
 
-## Repository Structure
+## Quick Navigation
 
+| Project | What it demonstrates | AWS Services | Level |
+|---------|---------------------|--------------|-------|
+| [`first-agent/`](first-agent/) | First Bedrock API call, prompt routing | Bedrock | Beginner |
+| [`prompt_engineering/`](prompt_engineering/) | 6 technique demos: temperature, chaining, guardrails | Bedrock | Beginner |
+| [`eligibility-agent/`](eligibility-agent/) | Production CDK pipeline | SQS, Lambda, DynamoDB, Bedrock, CDK | Intermediate |
+| [`agentic-loop/`](agentic-loop/) | 6 patterns: tool use, memory, RAG, reflection, parallel, human-in-loop | Bedrock, DynamoDB, SNS | Intermediate |
+| [`agentic-loop/multi-agent/`](agentic-loop/multi-agent/) | 3 orchestration patterns | Bedrock | Advanced |
+| [`hooks/`](hooks/) | Pre-commit: PHI scanner, commit enforcer, AI code review | Bedrock | Tooling |
+
+---
+
+## Code Quality and Safety
+
+Three custom pre-commit hooks run on every `git commit`. They are the
+operational safety layer for this repo — not just config files.
+
+| Hook | Stage | What it blocks | Tool |
+|------|-------|---------------|------|
+| `check-phi` | pre-commit | SSNs, real member IDs, DOBs, patient names in staged files | Python regex |
+| `check-commit-msg` | commit-msg | Commit messages that don't match `CATEGORY: description` format | Python regex |
+| `ai-review` | pre-commit | Critical bugs, security issues, PHI exposure (CRITICAL severity) | Bedrock Claude |
+
+**Also runs:** Black (formatter), Flake8 (linter), `detect-private-key`,
+`detect-aws-credentials`, file-size guard (500 KB max).
+
+PHI false-positive suppression: add `# phi-ok` to the end of a line.
+AI review bypass (e.g., no AWS access): `SKIP_AI_REVIEW=1 git commit ...`
+
+```bash
+# First-time setup
+pip install pre-commit boto3
+pre-commit install                        # installs pre-commit hook
+pre-commit install --hook-type commit-msg # installs commit-msg hook
 ```
-ai-beginner-learning/
-├── first-agent/              # Hello world + first Bedrock call
-├── prompt_engineering/       # 6 prompt engineering technique demos
-├── eligibility-agent/        # Production CDK project (SQS → Lambda → DynamoDB)
-└── agentic-loop/             # 6 advanced agentic pattern demos
+
+---
+
+## AWS Services Used
+
+| Service | Used in |
+|---------|---------|
+| Amazon Bedrock (Claude Sonnet) | All demos |
+| Amazon Bedrock (Titan Embed v2) | `agentic-loop/rag_demo.py` |
+| Amazon DynamoDB | `agentic-loop/memory_demo.py`, `agentic-loop/human_in_loop_demo.py`, CDK project |
+| Amazon SNS | `agentic-loop/human_in_loop_demo.py` |
+| Amazon SQS | `eligibility-agent/` |
+| AWS Lambda | `eligibility-agent/` |
+| AWS CDK | `eligibility-agent/` |
+
+---
+
+## Getting Started
+
+```bash
+git clone https://github.com/gyarram001/amazon-bedrock-demos.git
+cd amazon-bedrock-demos
+```
+
+### Prerequisites
+
+```bash
+# AWS credentials configured for cdk-dev profile
+aws configure --profile cdk-dev
+
+# Python dependencies (all demos)
+pip install boto3
+
+# Pre-commit hooks
+pip install pre-commit
+pre-commit install
+pre-commit install --hook-type commit-msg
+
+# CDK project only
+pip install aws-cdk-lib constructs
+```
+
+### Run any demo
+
+```bash
+AWS_PROFILE=cdk-dev python agentic-loop/multi-agent/multi_agent_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/rag_demo.py
+AWS_PROFILE=cdk-dev python prompt_engineering/temperature_demo.py
 ```
 
 ---
 
 ## 1. First Agent — Hello World & Eligibility Routing
 
-**Directory:** `first-agent/`
+**Directory:** [`first-agent/`](first-agent/)
 
 | File | What it does |
 |------|-------------|
@@ -39,7 +120,7 @@ routing with structured output.
 
 ## 2. Prompt Engineering
 
-**Directory:** `prompt_engineering/`
+**Directory:** [`prompt_engineering/`](prompt_engineering/)
 
 Six demos covering the core techniques for writing better prompts.
 All examples use a healthcare eligibility transaction as the domain.
@@ -57,7 +138,7 @@ All examples use a healthcare eligibility transaction as the domain.
 
 ## 3. Eligibility Agent — CDK Production Project
 
-**Directory:** `eligibility-agent/`
+**Directory:** [`eligibility-agent/`](eligibility-agent/)
 
 A production-ready serverless pipeline deployed with AWS CDK.
 
@@ -85,7 +166,7 @@ cdk deploy --profile cdk-dev
 
 ## 4. Agentic Loop Demos
 
-**Directory:** `agentic-loop/`
+**Directory:** [`agentic-loop/`](agentic-loop/)
 
 Six demos building progressively from a basic tool-use loop to RAG.
 
@@ -109,7 +190,7 @@ before making a final decision. Demonstrates the core Bedrock agentic loop.
 - Cumulative token tracking across all iterations
 
 ```bash
-python agentic_loop_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/agentic_loop_demo.py
 ```
 
 ---
@@ -131,7 +212,7 @@ persistent long-term memory.
 **AWS services:** Bedrock Converse API, DynamoDB (`eligibility-decisions` table)
 
 ```bash
-python memory_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/memory_demo.py
 ```
 
 ---
@@ -157,7 +238,7 @@ Bedrock analysis
 **AWS services:** Bedrock Converse API, DynamoDB, SNS
 
 ```bash
-python human_in_loop_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/human_in_loop_demo.py
 ```
 
 ---
@@ -184,7 +265,7 @@ improve answer quality over a single baseline call.
 | ReAct | ~3,000 | Fully tool-grounded + auditable chain |
 
 ```bash
-python reflection_react_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/reflection_react_demo.py
 ```
 
 ---
@@ -218,7 +299,7 @@ identical final answers and token counts.
 `concurrent.futures.as_completed()`.
 
 ```bash
-python parallel_tools_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/parallel_tools_demo.py
 ```
 
 ---
@@ -246,51 +327,23 @@ Aetna policy text (5 sections)
 4. Emergency Services — no prior auth, 48h notification
 5. Mental Health Services (CPT 90837) — prior auth after 8 sessions
 
-**Queries compared (No-RAG vs RAG):**
-1. "What are the prior auth requirements for knee surgery with Aetna?"
-2. "Is prior auth needed for a routine physical with Aetna?"
-
-RAG responses are grounded in exact policy text (with cosine scores printed);
-No-RAG responses rely on Claude's general training knowledge.
-
 **Embedding model:** `amazon.titan-embed-text-v2:0`
 
 ```bash
-python rag_demo.py
+AWS_PROFILE=cdk-dev python agentic-loop/rag_demo.py
 ```
 
 ---
 
-## Getting Started
+## Repository Structure
 
-```bash
-git clone https://github.com/gyarram001/gopala-yarram.git
-cd gopala-yarram
 ```
-
-## Prerequisites
-
-```bash
-# AWS credentials configured for cdk-dev profile
-aws configure --profile cdk-dev
-
-# Python dependencies
-pip install boto3
-
-# For the CDK project only
-pip install aws-cdk-lib constructs
+amazon-bedrock-demos/
+├── first-agent/              # Hello world + first Bedrock call
+├── prompt_engineering/       # 6 prompt engineering technique demos
+├── eligibility-agent/        # Production CDK project (SQS → Lambda → DynamoDB)
+├── agentic-loop/             # 6 advanced agentic pattern demos
+│   └── multi-agent/          # 3 multi-agent orchestration patterns
+├── hooks/                    # Pre-commit hooks (PHI, commit-msg, AI review)
+└── docs/                     # Learning summary, AI engineer plan
 ```
-
----
-
-## AWS Services Used
-
-| Service | Used in |
-|---------|---------|
-| Amazon Bedrock (Claude Sonnet) | All demos |
-| Amazon Bedrock (Titan Embed v2) | `rag_demo.py` |
-| Amazon DynamoDB | `memory_demo.py`, `human_in_loop_demo.py`, CDK project |
-| Amazon SNS | `human_in_loop_demo.py` |
-| Amazon SQS | CDK project |
-| AWS Lambda | CDK project |
-| AWS CDK | `eligibility-agent/` |

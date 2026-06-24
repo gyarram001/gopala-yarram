@@ -10,7 +10,7 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 TRANSACTION = {
-    "member_id": "AET-889221",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
     "payer_name": "Aetna",
     "service_date": "2026-06-20",
     "service_type": "knee surgery",
@@ -40,7 +40,13 @@ def call_bedrock(user_prompt: str, system_prompt: str = None) -> dict:
 
 def try_parse_json(raw: str) -> tuple[bool, str]:
     """Returns (success, reason). Strips markdown fences before attempting parse."""
-    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    cleaned = (
+        raw.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
     try:
         json.loads(cleaned)
         if raw.strip() != cleaned:
@@ -74,7 +80,9 @@ if __name__ == "__main__":
     divider("DEMO 1 — No Negative Instructions")
     print('  Prompt: "Analyze this eligibility transaction and return JSON"\n')
 
-    prompt_1 = f"Analyze this eligibility transaction and return JSON:\n\n{TRANSACTION_TEXT}"
+    prompt_1 = (
+        f"Analyze this eligibility transaction and return JSON:\n\n{TRANSACTION_TEXT}"
+    )
     result_1 = call_bedrock(prompt_1)
 
     print("  Raw response:")
@@ -84,7 +92,9 @@ if __name__ == "__main__":
     print_parse_result(success_1, reason_1)
     json_results["Demo 1 — No negative instructions"] = (success_1, reason_1)
 
-    print(f"\n  Tokens: {result_1['input_tokens']} in / {result_1['output_tokens']} out")
+    print(
+        f"\n  Tokens: {result_1['input_tokens']} in / {result_1['output_tokens']} out"
+    )
     print(
         "\n  OBSERVATION: Without constraints, Claude may wrap JSON in markdown"
         "\n  code fences, add preamble text, or include trailing commentary —"
@@ -113,7 +123,9 @@ if __name__ == "__main__":
     print_parse_result(success_2, reason_2)
     json_results["Demo 2 — With negative instructions"] = (success_2, reason_2)
 
-    print(f"\n  Tokens: {result_2['input_tokens']} in / {result_2['output_tokens']} out")
+    print(
+        f"\n  Tokens: {result_2['input_tokens']} in / {result_2['output_tokens']} out"
+    )
     print(
         "\n  OBSERVATION: Each 'do not' closes a specific failure mode."
         "\n  No fences → raw json.loads() works. No self-references → cleaner"
@@ -142,7 +154,9 @@ if __name__ == "__main__":
     print("  Response:")
     print("  " + "\n  ".join(result_3["text"].splitlines()))
 
-    print(f"\n  Tokens: {result_3['input_tokens']} in / {result_3['output_tokens']} out")
+    print(
+        f"\n  Tokens: {result_3['input_tokens']} in / {result_3['output_tokens']} out"
+    )
     print(
         "\n  OBSERVATION: Healthcare negative instructions act as a compliance"
         "\n  firewall. PHI stays out of responses. No coverage guarantees means"
@@ -170,7 +184,7 @@ if __name__ == "__main__":
         "\n                         they guarantee clean, parseable JSON with no"
         "\n                         post-processing needed."
         "\n"
-        "\n  3. Domain negatives  — Encode compliance rules as system-level constraints."
+        "\n  3. Domain negatives  — Encode compliance rules as system-level constraints."  # noqa: E501
         "\n                         PHI protection, liability qualifiers, and scope"
         "\n                         limits belong in the system prompt, not the user"
         "\n                         prompt — they apply to every call, not just one.\n"

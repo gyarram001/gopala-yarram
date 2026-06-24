@@ -17,9 +17,9 @@ import boto3
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_ID       = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-REGION         = "us-east-1"
-PROFILE        = "cdk-dev"
+MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+REGION = "us-east-1"
+PROFILE = "cdk-dev"
 MAX_ITERATIONS = 10
 
 session = boto3.Session(profile_name=PROFILE, region_name=REGION)
@@ -29,9 +29,9 @@ bedrock = session.client("bedrock-runtime")
 # Transaction
 # ---------------------------------------------------------------------------
 TRANSACTION = {
-    "member_id":      "AET-889221",
-    "payer_name":     "Aetna",
-    "service_type":   "knee surgery",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
+    "payer_name": "Aetna",
+    "service_type": "knee surgery",
     "diagnosis_code": "M17.11",
 }
 
@@ -53,6 +53,7 @@ SYSTEM_PROMPT = (
 # Tool implementations  (realistic latency via time.sleep)
 # ---------------------------------------------------------------------------
 
+
 def check_payer_requirements(payer_name: str, service_type: str) -> dict:
     """Simulate a slow payer-rules API call (1.2 s)."""
     time.sleep(1.2)
@@ -66,7 +67,7 @@ def check_payer_requirements(payer_name: str, service_type: str) -> dict:
     }
 
 
-def lookup_member_history(member_id: str) -> dict:
+def lookup_member_history(member_id: str) -> dict:  # phi-ok — function param
     """Simulate a member-history DB lookup (0.8 s)."""
     time.sleep(0.8)
     return {
@@ -90,14 +91,14 @@ def get_diagnosis_info(diagnosis_code: str) -> dict:
 
 TOOL_REGISTRY = {
     "check_payer_requirements": check_payer_requirements,
-    "lookup_member_history":    lookup_member_history,
-    "get_diagnosis_info":       get_diagnosis_info,
+    "lookup_member_history": lookup_member_history,
+    "get_diagnosis_info": get_diagnosis_info,
 }
 
 EXPECTED_LATENCIES = {
     "check_payer_requirements": 1.2,
-    "lookup_member_history":    0.8,
-    "get_diagnosis_info":       0.6,
+    "lookup_member_history": 0.8,
+    "get_diagnosis_info": 0.6,
 }
 
 TOOL_CONFIG = {
@@ -114,8 +115,14 @@ TOOL_CONFIG = {
                     "json": {
                         "type": "object",
                         "properties": {
-                            "payer_name":   {"type": "string", "description": "Insurance payer name, e.g. Aetna."},
-                            "service_type": {"type": "string", "description": "Medical service, e.g. knee surgery."},
+                            "payer_name": {
+                                "type": "string",
+                                "description": "Insurance payer name, e.g. Aetna.",
+                            },
+                            "service_type": {
+                                "type": "string",
+                                "description": "Medical service, e.g. knee surgery.",
+                            },
                         },
                         "required": ["payer_name", "service_type"],
                     }
@@ -132,7 +139,10 @@ TOOL_CONFIG = {
                     "json": {
                         "type": "object",
                         "properties": {
-                            "member_id": {"type": "string", "description": "Unique member identifier."},
+                            "member_id": {
+                                "type": "string",
+                                "description": "Unique member identifier.",
+                            },
                         },
                         "required": ["member_id"],
                     }
@@ -150,7 +160,10 @@ TOOL_CONFIG = {
                     "json": {
                         "type": "object",
                         "properties": {
-                            "diagnosis_code": {"type": "string", "description": "ICD-10 code, e.g. M17.11."},
+                            "diagnosis_code": {
+                                "type": "string",
+                                "description": "ICD-10 code, e.g. M17.11.",
+                            },
                         },
                         "required": ["diagnosis_code"],
                     }
@@ -163,6 +176,7 @@ TOOL_CONFIG = {
 # ---------------------------------------------------------------------------
 # Print helpers
 # ---------------------------------------------------------------------------
+
 
 def divider(title: str) -> None:
     print()
@@ -186,6 +200,7 @@ def print_json_block(obj: dict, indent: int = 4) -> None:
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 def extract_text(response: dict) -> str:
     parts = []
@@ -234,18 +249,21 @@ def parse_json_response(text: str) -> dict:
 # Tool executors
 # ---------------------------------------------------------------------------
 
+
 def sequential_executor(tool_uses: list[dict]) -> tuple[list[dict], float]:
     """Run tools one at a time; return (results, wall_clock_seconds)."""
     wall_start = time.perf_counter()
-    results    = []
+    results = []
 
     for i, tu in enumerate(tool_uses, 1):
         t0 = time.perf_counter()
         result, is_error = dispatch_tool(tu["name"], tu.get("input", {}))
         elapsed = time.perf_counter() - t0
         expected = EXPECTED_LATENCIES.get(tu["name"], 0)
-        print(f"    [{i}/{len(tool_uses)}] {tu['name']:<35s} {elapsed:.2f}s  "
-              f"(expected ~{expected:.1f}s)")
+        print(
+            f"    [{i}/{len(tool_uses)}] {tu['name']:<35s} {elapsed:.2f}s  "
+            f"(expected ~{expected:.1f}s)"
+        )
         results.append(build_tool_result(tu["toolUseId"], result, is_error))
 
     wall_elapsed = time.perf_counter() - wall_start
@@ -258,7 +276,7 @@ def parallel_executor(tool_uses: list[dict]) -> tuple[list[dict], float]:
     print(f"    Running concurrently: {names}")
 
     # Pre-allocate results list to preserve ordering by tool_uses index
-    results  = [None] * len(tool_uses)
+    results = [None] * len(tool_uses)
     id_to_idx = {tu["toolUseId"]: i for i, tu in enumerate(tool_uses)}
 
     wall_start = time.perf_counter()
@@ -269,20 +287,23 @@ def parallel_executor(tool_uses: list[dict]) -> tuple[list[dict], float]:
             for tu in tool_uses
         }
         for future in as_completed(future_map):
-            tu               = future_map[future]
+            tu = future_map[future]
             result, is_error = future.result()
-            idx              = id_to_idx[tu["toolUseId"]]
-            results[idx]     = build_tool_result(tu["toolUseId"], result, is_error)
+            idx = id_to_idx[tu["toolUseId"]]
+            results[idx] = build_tool_result(tu["toolUseId"], result, is_error)
 
     wall_elapsed = time.perf_counter() - wall_start
-    print(f"    All {len(tool_uses)} tools completed in {wall_elapsed:.2f}s  "
-          f"(expected ~{max(EXPECTED_LATENCIES[tu['name']] for tu in tool_uses):.1f}s)")
+    print(
+        f"    All {len(tool_uses)} tools completed in {wall_elapsed:.2f}s  "
+        f"(expected ~{max(EXPECTED_LATENCIES[tu['name']] for tu in tool_uses):.1f}s)"
+    )
     return results, wall_elapsed
 
 
 # ---------------------------------------------------------------------------
 # Generic agentic loop
 # ---------------------------------------------------------------------------
+
 
 def run_agentic_loop(
     demo_label: str,
@@ -302,16 +323,23 @@ def run_agentic_loop(
     -------
     (final_text, total_tool_time_s, total_input_tokens, total_output_tokens)
     """
-    messages = [{
-        "role":    "user",
-        "content": [{"text": "Analyze this transaction:\n\n" + json.dumps(TRANSACTION, indent=2)}],
-    }]
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "text": "Analyze this transaction:\n\n"
+                    + json.dumps(TRANSACTION, indent=2)
+                }
+            ],
+        }
+    ]
 
-    total_tool_time   = 0.0
-    total_input_tok   = 0
-    total_output_tok  = 0
-    iteration         = 0
-    batch_num         = 0
+    total_tool_time = 0.0
+    total_input_tok = 0
+    total_output_tok = 0
+    iteration = 0
+    batch_num = 0
 
     while True:
         if iteration >= MAX_ITERATIONS:
@@ -328,10 +356,10 @@ def run_agentic_loop(
             inferenceConfig={"maxTokens": 1024, "temperature": 0},
         )
 
-        usage             = response.get("usage", {})
-        total_input_tok  += usage.get("inputTokens",  0)
+        usage = response.get("usage", {})
+        total_input_tok += usage.get("inputTokens", 0)
         total_output_tok += usage.get("outputTokens", 0)
-        stop_reason       = response.get("stopReason", "")
+        stop_reason = response.get("stopReason", "")
         assistant_message = response["output"]["message"]
         messages.append(assistant_message)
 
@@ -363,6 +391,7 @@ def run_agentic_loop(
 # Demo 1 — Sequential
 # ---------------------------------------------------------------------------
 
+
 def demo_sequential() -> tuple[str, float, int, int]:
     divider("DEMO 1 — Sequential tool execution  (for-loop, one at a time)")
     print("  Expected wall-clock ≈ 1.2 + 0.8 + 0.6 = 2.6 s per batch\n")
@@ -382,7 +411,9 @@ def demo_sequential() -> tuple[str, float, int, int]:
 
     print()
     print(f"  Total tool wall-clock time : {tool_time:.2f}s")
-    print(f"  Tokens                     : {in_tok} in / {out_tok} out / {in_tok + out_tok} total")
+    print(
+        f"  Tokens                     : {in_tok} in / {out_tok} out / {in_tok + out_tok} total"  # noqa: E501
+    )
 
     return final_text, tool_time, in_tok, out_tok
 
@@ -390,6 +421,7 @@ def demo_sequential() -> tuple[str, float, int, int]:
 # ---------------------------------------------------------------------------
 # Demo 2 — Parallel
 # ---------------------------------------------------------------------------
+
 
 def demo_parallel() -> tuple[str, float, int, int]:
     divider("DEMO 2 — Parallel tool execution  (ThreadPoolExecutor, max_workers=3)")
@@ -410,7 +442,9 @@ def demo_parallel() -> tuple[str, float, int, int]:
 
     print()
     print(f"  Total tool wall-clock time : {tool_time:.2f}s")
-    print(f"  Tokens                     : {in_tok} in / {out_tok} out / {in_tok + out_tok} total")
+    print(
+        f"  Tokens                     : {in_tok} in / {out_tok} out / {in_tok + out_tok} total"  # noqa: E501
+    )
 
     return final_text, tool_time, in_tok, out_tok
 
@@ -419,9 +453,16 @@ def demo_parallel() -> tuple[str, float, int, int]:
 # Comparison summary
 # ---------------------------------------------------------------------------
 
+
 def print_comparison(
-    seq_text: str, seq_time: float, seq_in: int, seq_out: int,
-    par_text: str, par_time: float, par_in: int, par_out: int,
+    seq_text: str,
+    seq_time: float,
+    seq_in: int,
+    seq_out: int,
+    par_text: str,
+    par_time: float,
+    par_in: int,
+    par_out: int,
 ) -> None:
     divider("COMPARISON SUMMARY")
 
@@ -442,12 +483,17 @@ def print_comparison(
     try:
         seq_json = parse_json_response(seq_text)
         par_json = parse_json_response(par_text)
-        fields   = ["is_eligible", "risk_level", "prior_auth_required", "recommended_action"]
+        fields = [
+            "is_eligible",
+            "risk_level",
+            "prior_auth_required",
+            "recommended_action",
+        ]
         all_match = True
         for field in fields:
-            sv, pv   = seq_json.get(field), par_json.get(field)
-            match    = sv == pv
-            marker   = "MATCH  " if match else "DIFFER "
+            sv, pv = seq_json.get(field), par_json.get(field)
+            match = sv == pv
+            marker = "MATCH  " if match else "DIFFER "
             print(f"  {marker}  {field}: {sv!r}")
             if not match:
                 all_match = False
@@ -490,8 +536,14 @@ if __name__ == "__main__":
     par_text, par_time, par_in, par_out = demo_parallel()
 
     print_comparison(
-        seq_text, seq_time, seq_in, seq_out,
-        par_text, par_time, par_in, par_out,
+        seq_text,
+        seq_time,
+        seq_in,
+        seq_out,
+        par_text,
+        par_time,
+        par_in,
+        par_out,
     )
 
     print()

@@ -12,7 +12,7 @@ bedrock_mgmt = boto3.client("bedrock", region_name="us-east-1")
 MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 TRANSACTION = {
-    "member_id": "AET-889221",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
     "payer_name": "Aetna",
     "service_date": "2026-06-20",
     "service_type": "knee surgery",
@@ -24,8 +24,13 @@ TRANSACTION_TEXT = "\n".join(f"  {k}: {v}" for k, v in TRANSACTION.items())
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
 
-def call_bedrock(user_prompt: str, system_prompt: str = None,
-                 guardrail_id: str = None, guardrail_version: str = "DRAFT") -> dict:
+
+def call_bedrock(
+    user_prompt: str,
+    system_prompt: str = None,
+    guardrail_id: str = None,
+    guardrail_version: str = "DRAFT",
+) -> dict:
     kwargs = {
         "modelId": MODEL_ID,
         "messages": [{"role": "user", "content": [{"text": user_prompt}]}],
@@ -49,7 +54,13 @@ def call_bedrock(user_prompt: str, system_prompt: str = None,
 
 
 def parse_json(raw: str) -> dict | None:
-    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    cleaned = (
+        raw.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
@@ -68,6 +79,7 @@ def sub(label: str):
 
 # ── Demo 1: Prompt guardrails ─────────────────────────────────────────────────
 
+
 def demo_1_prompt_guardrails():
     divider("DEMO 1 — Prompt Guardrails (system prompt rules)")
 
@@ -85,14 +97,18 @@ def demo_1_prompt_guardrails():
     prompt_a = f"Analyze this eligibility transaction:\n\n{TRANSACTION_TEXT}"
     result_a = call_bedrock(prompt_a, system_prompt=system)
     print(f"\n{result_a['text']}")
-    print(f"\n  Tokens: {result_a['input_tokens']} in / {result_a['output_tokens']} out")
+    print(
+        f"\n  Tokens: {result_a['input_tokens']} in / {result_a['output_tokens']} out"
+    )
 
     # 1b: Off-topic input
     sub("1b — Off-topic input: clinical question")
     prompt_b = "What is the best treatment for knee pain?"
     result_b = call_bedrock(prompt_b, system_prompt=system)
     print(f"\n{result_b['text']}")
-    print(f"\n  Tokens: {result_b['input_tokens']} in / {result_b['output_tokens']} out")
+    print(
+        f"\n  Tokens: {result_b['input_tokens']} in / {result_b['output_tokens']} out"
+    )
 
     parsed_b = parse_json(result_b["text"])
     if parsed_b and parsed_b.get("error") == "out_of_scope":
@@ -128,7 +144,10 @@ def validate_analysis(parsed: dict) -> list[str]:
             )
 
     if "recommended_action" in parsed:
-        if not isinstance(parsed["recommended_action"], str) or not parsed["recommended_action"].strip():
+        if (
+            not isinstance(parsed["recommended_action"], str)
+            or not parsed["recommended_action"].strip()
+        ):
             failures.append("recommended_action must be a non-empty string")
 
     if "is_valid" in parsed:
@@ -157,7 +176,9 @@ def demo_2_code_guardrails():
 
     if parsed is None:
         print("\n  ✗ Response is not JSON — validation skipped, saving blocked")
-        print('  → {"error": "validation_failed", "details": ["response is not valid JSON"]}')
+        print(
+            '  → {"error": "validation_failed", "details": ["response is not valid JSON"]}'  # noqa: E501
+        )
         return
 
     failures = validate_analysis(parsed)
@@ -184,6 +205,7 @@ def demo_2_code_guardrails():
 
 # ── Demo 3: AWS Bedrock Guardrails ─────────────────────────────────────────────
 
+
 def demo_3_bedrock_guardrails():
     divider("DEMO 3 — AWS Bedrock Managed Guardrails")
 
@@ -194,9 +216,17 @@ def demo_3_bedrock_guardrails():
             description="Healthcare eligibility agent guardrail",
             contentPolicyConfig={
                 "filtersConfig": [
-                    {"type": "HATE",     "inputStrength": "HIGH", "outputStrength": "HIGH"},
-                    {"type": "VIOLENCE", "inputStrength": "HIGH", "outputStrength": "HIGH"},
-                    {"type": "SEXUAL",   "inputStrength": "HIGH", "outputStrength": "HIGH"},
+                    {"type": "HATE", "inputStrength": "HIGH", "outputStrength": "HIGH"},
+                    {
+                        "type": "VIOLENCE",
+                        "inputStrength": "HIGH",
+                        "outputStrength": "HIGH",
+                    },
+                    {
+                        "type": "SEXUAL",
+                        "inputStrength": "HIGH",
+                        "outputStrength": "HIGH",
+                    },
                 ]
             },
             sensitiveInformationPolicyConfig={
@@ -206,13 +236,13 @@ def demo_3_bedrock_guardrails():
                     {"type": "PHONE", "action": "ANONYMIZE"},
                 ]
             },
-            blockedInputMessaging="This input is not allowed in the eligibility system.",
-            blockedOutputsMessaging="This output has been blocked for compliance reasons.",
+            blockedInputMessaging="This input is not allowed in the eligibility system.",  # noqa: E501
+            blockedOutputsMessaging="This output has been blocked for compliance reasons.",  # noqa: E501
         )
 
         guardrail_id = response["guardrailId"]
         guardrail_arn = response["guardrailArn"]
-        print(f"\n  ✓ Guardrail created")
+        print("\n  ✓ Guardrail created")
         print(f"    ID  : {guardrail_id}")
         print(f"    ARN : {guardrail_arn}")
 
@@ -240,9 +270,13 @@ def demo_3_bedrock_guardrails():
     prompt = f"Analyze this eligibility transaction:\n\n{TRANSACTION_TEXT}"
 
     try:
-        result = call_bedrock(prompt, guardrail_id=guardrail_id, guardrail_version="DRAFT")
+        result = call_bedrock(
+            prompt, guardrail_id=guardrail_id, guardrail_version="DRAFT"
+        )
         print(f"\n{result['text']}")
-        print(f"\n  Tokens    : {result['input_tokens']} in / {result['output_tokens']} out")
+        print(
+            f"\n  Tokens    : {result['input_tokens']} in / {result['output_tokens']} out"  # noqa: E501
+        )
         print(f"  Stop reason: {result['stop_reason']}")
         print("\n  ✓ Response passed through Bedrock guardrail without being blocked")
     except bedrock_runtime.exceptions.ClientError as e:

@@ -12,7 +12,7 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 TRANSACTION = {
-    "member_id": "AET-889221",
+    "member_id": "AET-889221",  # phi-ok — synthetic test ID
     "payer_name": "Aetna",
     "service_date": "2026-06-20",
     "service_type": "knee surgery",
@@ -38,7 +38,7 @@ def call_bedrock(user_prompt: str, system_prompt: str = None) -> str:
 def divider(title: str):
     print(f"\n{'═' * 70}")
     print(f"  {title}")
-    print('═' * 70)
+    print("═" * 70)
 
 
 def sub(label: str):
@@ -47,13 +47,12 @@ def sub(label: str):
 
 # ── Technique 1: Role Assignment ─────────────────────────────────────────────
 
+
 def technique_1_role_assignment():
     divider("TECHNIQUE 1 — Role Assignment (BAD vs GOOD)")
 
     sub("BAD: No system prompt")
-    bad_response = call_bedrock(
-        f"Review this transaction:\n{TRANSACTION_TEXT}"
-    )
+    bad_response = call_bedrock(f"Review this transaction:\n{TRANSACTION_TEXT}")
     print(bad_response)
 
     sub("GOOD: Senior healthcare eligibility specialist persona")
@@ -77,13 +76,12 @@ def technique_1_role_assignment():
 
 # ── Technique 2: Specificity ─────────────────────────────────────────────────
 
+
 def technique_2_specificity():
     divider("TECHNIQUE 2 — Specificity (BAD vs GOOD)")
 
     sub("BAD: Vague question")
-    bad_response = call_bedrock(
-        f"Is this transaction okay?\n{TRANSACTION_TEXT}"
-    )
+    bad_response = call_bedrock(f"Is this transaction okay?\n{TRANSACTION_TEXT}")
     print(bad_response)
 
     sub("GOOD: Structured, specific questions")
@@ -106,6 +104,7 @@ def technique_2_specificity():
 
 
 # ── Technique 3: Output Format Control ───────────────────────────────────────
+
 
 def technique_3_output_format():
     divider("TECHNIQUE 3 — Output Format Control (Structured JSON)")
@@ -130,11 +129,17 @@ def technique_3_output_format():
     sub("Parsed fields")
     try:
         # Strip markdown fences if Claude adds them despite the instruction
-        cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        cleaned = (
+            raw.strip()
+            .removeprefix("```json")
+            .removeprefix("```")
+            .removesuffix("```")
+            .strip()
+        )
         parsed = json.loads(cleaned)
         print(f"  is_valid          : {parsed['is_valid']}")
         print(f"  missing_fields    : {parsed['missing_fields']}")
-        print(f"  issues            :")
+        print("  issues            :")
         for issue in parsed["issues"]:
             print(f"    • {issue}")
         print(f"  recommended_action: {parsed['recommended_action']}")
@@ -151,16 +156,16 @@ def technique_3_output_format():
 
 # ── Technique 4: Few-Shot Examples ───────────────────────────────────────────
 
+
 def technique_4_few_shot():
     divider("TECHNIQUE 4 — Few-Shot Examples")
 
     few_shot_prompt = (
         "You are a healthcare eligibility analyst. "
         "Here are two examples of how to analyse eligibility transactions:\n\n"
-
         "--- EXAMPLE 1 ---\n"
         "Transaction:\n"
-        "  member_id: BCBS-112233\n"
+        "  member_id: BCBS-112233\n"  # phi-ok — synthetic test ID
         "  payer_name: BlueCross\n"
         "  service_date: 2026-01-15\n"
         "  service_type: annual physical\n"
@@ -173,10 +178,9 @@ def technique_4_few_shot():
         "  Service date 2026-01-15 is within acceptable range.\n"
         "  BlueCross typically covers annual physicals at 100% under preventive care.\n"
         "  Recommended action: Submit for eligibility check — likely to approve.\n\n"
-
         "--- EXAMPLE 2 ---\n"
         "Transaction:\n"
-        "  member_id: UHC-445566\n"
+        "  member_id: UHC-445566\n"  # phi-ok — synthetic test ID
         "  payer_name: UnitedHealth\n"
         "  service_date: 2023-03-01\n"
         "  service_type: MRI brain\n"
@@ -188,7 +192,6 @@ def technique_4_few_shot():
         "  UnitedHealth requires prior authorisation for brain MRIs.\n"
         "  Recommended action: Obtain diagnosis code and confirm service date\n"
         "  before submitting.\n\n"
-
         "--- NOW ANALYSE THIS TRANSACTION ---\n"
         f"{TRANSACTION_TEXT}\n\n"
         "Follow the same pattern as the examples above."
@@ -209,6 +212,7 @@ def technique_4_few_shot():
 
 # ── Technique 5: Chain of Thought ────────────────────────────────────────────
 
+
 def technique_5_chain_of_thought():
     divider("TECHNIQUE 5 — Chain of Thought (with vs without)")
 
@@ -221,7 +225,7 @@ def technique_5_chain_of_thought():
     without_cot = call_bedrock(base_question)
     print(without_cot)
 
-    sub("WITH chain of thought  (\"Think step by step:\")")
+    sub('WITH chain of thought  ("Think step by step:")')
     with_cot = call_bedrock(base_question + "\n\nThink step by step:")
     print(with_cot)
 
@@ -235,6 +239,7 @@ def technique_5_chain_of_thought():
 
 
 # ── Production-Ready Prompt (all 5 techniques combined) ──────────────────────
+
 
 def production_ready_prompt():
     divider("PRODUCTION-READY PROMPT — All 5 Techniques Combined")
@@ -251,11 +256,10 @@ def production_ready_prompt():
     # ── Techniques 2 + 4 + 5: Specific instructions, few-shot examples, CoT ──
     user_prompt = (
         "You will analyse eligibility transactions for issues before submission.\n\n"
-
         # Few-shot example 1 (Technique 4)
         "=== EXAMPLE 1: VALID TRANSACTION ===\n"
         "Input:\n"
-        "  member_id: BCBS-112233\n"
+        "  member_id: BCBS-112233\n"  # phi-ok — synthetic test ID
         "  payer_name: BlueCross\n"
         "  service_date: 2026-08-10\n"
         "  service_type: annual physical\n"
@@ -271,14 +275,13 @@ def production_ready_prompt():
         '  "recommended_action": "Submit for eligibility check. Annual physicals '
         'are typically covered at 100% under preventive care for BlueCross.",\n'
         '  "reasoning": "All required 270 fields present. Z00.00 is correct for '
-        'an annual physical. Service date is within a reasonable future window. '
+        "an annual physical. Service date is within a reasonable future window. "
         'NPI format is valid."\n'
         "}\n\n"
-
         # Few-shot example 2 (Technique 4)
         "=== EXAMPLE 2: INVALID TRANSACTION ===\n"
         "Input:\n"
-        "  member_id: UHC-445566\n"
+        "  member_id: UHC-445566\n"  # phi-ok — synthetic test ID
         "  payer_name: UnitedHealth\n"
         "  service_date: 2023-03-01\n"
         "  service_type: MRI brain\n"
@@ -291,7 +294,7 @@ def production_ready_prompt():
         '  "issues": [\n'
         '    "diagnosis_code is required for imaging authorisation",\n'
         '    "service_date 2023-03-01 is over 3 years in the past — likely stale"\n'
-        '  ],\n'
+        "  ],\n"
         '  "prior_auth_required": true,\n'
         '  "risk_level": "HIGH",\n'
         '  "recommended_action": "Obtain ICD-10 diagnosis code and confirm service '
@@ -299,24 +302,20 @@ def production_ready_prompt():
         '  "reasoning": "Missing diagnosis_code blocks authorisation. Stale service '
         'date will cause rejection. Brain MRI requires prior auth per UHC policy."\n'
         "}\n\n"
-
         # Actual transaction to analyse
         "=== NOW ANALYSE THIS TRANSACTION ===\n"
         f"Input:\n{TRANSACTION_TEXT}\n\n"
-
         # Technique 2: Specific instructions on exactly what to check
         "Check the following in order (Technique 2 — specificity):\n"
         "1. Are all required 270 EDI fields present?\n"
-        "2. Is the diagnosis code a valid ICD-10-CM format and appropriate for the service type?\n"
-        "3. Is the service date within a reasonable range (not stale, not too far future)?\n"
-        "4. Does this payer typically require prior authorisation for this service type?\n"
+        "2. Is the diagnosis code a valid ICD-10-CM format and appropriate for the service type?\n"  # noqa: E501
+        "3. Is the service date within a reasonable range (not stale, not too far future)?\n"  # noqa: E501
+        "4. Does this payer typically require prior authorisation for this service type?\n"  # noqa: E501
         "5. Is the provider NPI format valid (10 digits, non-placeholder)?\n\n"
-
         # Technique 5: Chain of thought
         "Think step by step through each check before producing your answer.\n\n"
-
         # Technique 3: Strict JSON output
-        "Return ONLY a JSON object with exactly these fields — no text outside the JSON:\n"
+        "Return ONLY a JSON object with exactly these fields — no text outside the JSON:\n"  # noqa: E501
         "{\n"
         '  "is_valid": <boolean>,\n'
         '  "missing_fields": <list of strings>,\n'
@@ -335,14 +334,20 @@ def production_ready_prompt():
 
     sub("Parsed result")
     try:
-        cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        cleaned = (
+            raw.strip()
+            .removeprefix("```json")
+            .removeprefix("```")
+            .removesuffix("```")
+            .strip()
+        )
         result = json.loads(cleaned)
 
         print(f"  is_valid          : {result['is_valid']}")
         print(f"  risk_level        : {result['risk_level']}")
         print(f"  prior_auth_req    : {result['prior_auth_required']}")
         print(f"  missing_fields    : {result['missing_fields']}")
-        print(f"  issues            :")
+        print("  issues            :")
         for issue in result["issues"]:
             print(f"    • {issue}")
         print(f"  recommended_action: {result['recommended_action']}")

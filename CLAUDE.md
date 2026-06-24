@@ -32,3 +32,55 @@ CDK deploy:         cd eligibility-agent && cdk deploy (requires AWS_PROFILE=cdk
 - Never commit real member IDs, SSNs, DOBs, or any PHI
 - Never skip inferenceConfig on a Bedrock agent call
 - Never save to DynamoDB when stopReason is max_tokens (truncated response)
+
+# New Project Checklist
+
+## Before First Commit
+- [ ] Create `<project>/README.md` using the template below
+- [ ] Draw a Mermaid architecture diagram if the project uses >2 AWS services
+- [ ] Run `pre-commit run --all-files` — all hooks pass
+- [ ] Run PHI check manually: `python hooks/check-phi.py <files>`
+- [ ] Add one row to the Quick Navigation table in root `README.md`
+
+## README Template (copy and fill in)
+
+```markdown
+# <Project Name>
+
+One or two sentences: what problem does this solve?
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A([Input]) --> B[Service]
+    B --> C[(Storage)]
+```
+
+## What it demonstrates
+
+| Concept | Where |
+|---------|-------|
+| ... | ... |
+
+## Run
+
+```bash
+AWS_PROFILE=cdk-dev python <entry_point>.py
+```
+
+## AWS Services
+
+| Service | Role |
+|---------|------|
+| ... | ... |
+```
+
+## After Each Session
+- [ ] Update `docs/learning-summary.md` with session number and key takeaways
+- [ ] Commit: `DOCS: update learning summary — Session N <topic>`
+
+## Rule: Demo vs Standalone Repo
+- **Demo / learning script** → add to `amazon-bedrock-demos` (this repo)
+- **Deployable project, end-to-end product, or resume bullet** → new standalone repo
+  - Use structure: `src/`, `infra/`, `tests/`, `requirements.txt`, `.pre-commit-config.yaml`, `LICENSE`
