@@ -25,6 +25,7 @@ JSON output, `temperature=0.0`, and a PHI-safe pre-commit pipeline.
 | [`eligibility-agent/`](eligibility-agent/) | Production CDK pipeline | SQS, Lambda, DynamoDB, Bedrock, CDK | Intermediate |
 | [`agentic-loop/`](agentic-loop/) | 6 patterns: tool use, memory, RAG, reflection, parallel, human-in-loop | Bedrock, DynamoDB, SNS | Intermediate |
 | [`agentic-loop/multi-agent/`](agentic-loop/multi-agent/) | 3 orchestration patterns | Bedrock | Advanced |
+| [`mcp-server/`](mcp-server/) | MCP server with 2 tools + Lambda client demo | Bedrock, DynamoDB | Advanced |
 | [`hooks/`](hooks/) | Pre-commit: PHI scanner, commit enforcer, AI code review | Bedrock | Tooling |
 
 ---

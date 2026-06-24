@@ -1189,6 +1189,12 @@ Both layers run the same check. The pipeline is the authoritative gate.
 37. **MCP in Claude Code is dev-time, tool use in Lambda is runtime** — same protocol, completely separate setup and purpose
 38. **CI enforcement belongs in the pipeline, not git hooks** — git hooks can be bypassed with `--no-verify`; Azure DevOps pipeline gates cannot
 39. **Skill file vs CLAUDE.md for CI tasks** — CLAUDE.md defines the convention; the skill file gives Claude the specific bounded task to run in the pipeline
+40. **MCP tool description is load-bearing** — Claude reads it to decide when to call the tool; vague description = wrong tool calls in production; treat it as code, not a comment
+41. **tools/list is discovery, not configuration** — Claude learns available tools at connect time via protocol handshake, not from a static file
+42. **asyncio.to_thread() is required for boto3 in async code** — boto3 is synchronous; calling it directly inside async def blocks the event loop; wrap every boto3 call with asyncio.to_thread()
+43. **Transport determines deployment model** — stdio for Claude Code (local), Streamable HTTP for Lambda/team server; same server code, different mcp.run(transport=) argument
+44. **MCP reusability follows microservice principles** — build the tool once, any agent connects; change it once, all agents get the update; description field replaces the REST API contract
+45. **One server with client-side filtering beats many servers for small teams** — operational overhead of multiple servers outweighs token savings until you hit a real security boundary reason to split
 
 ---
 
@@ -1202,7 +1208,7 @@ Both layers run the same check. The pipeline is the authoritative gate.
 6. ✅ Agentic loops deep dive (tool use, memory, human-in-loop, reflection, parallel, RAG, multi-agent)
 7. ✅ Multi-agent orchestration — orchestrator + workers, sequential pipeline, parallel specialists
 8. ✅ Claude Code — slash commands, CLAUDE.md, hooks, skills, best practices, multi-file edits, git integration, MCP, CI/CD
-9. ⬜ MCP (Model Context Protocol) — building and connecting MCP servers
+9. ✅ MCP (Model Context Protocol) — building and connecting MCP servers
 10. ⬜ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ⬜ Step Functions for multi-step workflows
 12. ⬜ n8n — build AI-powered workflows with no/low code
