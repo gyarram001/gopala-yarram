@@ -1,5 +1,5 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** June 22, 2026
+**Started:** June 14, 2026 | **Last Updated:** June 23, 2026
 
 ---
 
@@ -904,6 +904,250 @@ Three coordination patterns built and run end-to-end against real Bedrock calls.
 
 ---
 
+---
+
+## Session 8 — June 23, 2026
+
+### Claude Code — Slash Commands, CLAUDE.md, Hooks
+
+---
+
+**What is Claude Code?**
+Anthropic's official CLI tool for agentic coding. Runs in your terminal, reads your codebase, edits files, runs commands, and iterates — driven by natural language. Not a chat interface — an agent with direct access to your file system and shell.
+
+---
+
+**Slash Commands**
+
+Built-in commands that control Claude Code's behavior mid-session. These are different from skills (user-invocable workflows like `/commit` or `/review`) — built-ins are always available, skills are defined separately.
+
+| Command | What it does |
+|---|---|
+| `/help` | Show all available commands and keyboard shortcuts |
+| `/clear` | Reset conversation context — start fresh without restarting the CLI |
+| `/compact` | Compress conversation history to save context window space — Claude summarizes what happened so far |
+| `/cost` | Show token usage and estimated cost for the current session |
+
+**Key distinction — built-in commands vs skills:**
+- Built-in commands (`/clear`, `/compact`, `/cost`) are always present — they control the tool itself
+- Skills (`/commit`, `/review`) are invocable workflows that expand into full prompts — configurable per project
+- Skills were not covered this session
+
+**When to use `/compact`:**
+Long sessions accumulate context. When Claude starts losing track of earlier edits or you see "context window filling" warnings, `/compact` compresses history while preserving the key facts. Use before starting a large new sub-task within the same session.
+
+---
+
+**CLAUDE.md**
+
+A markdown file Claude Code reads automatically at the start of every session. Encodes project-specific instructions, conventions, and guardrails so you don't repeat them in every prompt.
+
+**Scoping — three levels (inner scope wins):**
+```
+~/.claude/CLAUDE.md          ← global: applies to all projects on this machine
+<repo-root>/CLAUDE.md        ← project: applies to this repo (what you have)
+<subdirectory>/CLAUDE.md     ← local: applies only when working in that folder
+```
+
+**Your existing CLAUDE.md covers the right sections:**
+```
+# About Me        ← tells Claude who you are and how to communicate with you
+# Structure       ← maps the repo so Claude navigates it correctly
+# Commands        ← how to run, lint, format, deploy
+# Conventions     ← temperature=0.0, parse_bedrock_json, AWS_PROFILE from env
+# Never Do        ← hard guardrails (no hardcoded credentials, no PHI, no missing inferenceConfig)
+# currentDate     ← injects today's date so Claude reasons about time correctly
+```
+
+**What CLAUDE.md does NOT do:**
+- It does not persist between sessions automatically — Claude re-reads it fresh each session
+- It does not replace good prompting — it sets defaults, not overrides for every situation
+- It does not inject context into Bedrock agent calls — it only affects Claude Code behavior in the CLI
+
+**What makes a good CLAUDE.md:**
+- Commands section should be copy-paste runnable — Claude will use them literally
+- Conventions should be specific (`temperature=0.0 in inferenceConfig set per call`) not vague (`use good defaults`)
+- Never Do section should cover your real failure modes — things that actually went wrong (missing inferenceConfig, hardcoded credentials)
+- Keep it short — Claude reads it every session; bloated files dilute signal
+
+---
+
+**Hooks (Claude Code hooks)**
+
+Event-driven shell commands that run automatically in response to Claude Code actions. Separate from git pre-commit hooks — those run on `git commit`, these run on Claude Code tool calls.
+
+**Configured in `.claude/settings.json`:**
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "black $CLAUDE_FILE_PATH"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Event types:**
+
+| Event | When it fires |
+|---|---|
+| `PreToolUse` | Before Claude runs a tool — can inspect or block |
+| `PostToolUse` | After Claude runs a tool — good for cleanup/validation |
+| `UserPromptSubmit` | When you submit a message — can modify or gate the prompt |
+| `Stop` | When Claude finishes a response |
+
+**`PreToolUse` vs `PostToolUse`:**
+- `PreToolUse` — runs before the action happens. Use to block dangerous operations (e.g., block `Bash` commands that match `rm -rf`)
+- `PostToolUse` — runs after the action happens. Use for cleanup (e.g., auto-format after every file edit)
+
+**Practical uses for your project:**
+```
+PostToolUse on Write/Edit  → run black + flake8 automatically after every file edit
+PostToolUse on Write/Edit  → run PHI scanner on changed file before it hits git
+PreToolUse on Bash         → block shell commands that contain destructive patterns
+UserPromptSubmit           → enforce that prompts reference a ticket number for audit
+```
+
+**Not covered this session:**
+- Skills (`/commit`, `/review` — user-invocable workflows)
+- Best practices for prompting Claude Code effectively
+- Multi-file edit strategies
+- Git integration
+- MCP servers in Claude Code
+- Azure DevOps CI/CD integration
+
+---
+
+---
+
+## Session 9 — June 24, 2026
+
+### Claude Code — Skills, Best Practices, Multi-File Edits, Git, MCP, CI/CD
+
+---
+
+**Skills and Commands — same thing, two names**
+
+"Skills" is the conceptual name. "Commands" is the folder name on disk. They refer to the same feature.
+
+```
+.claude/commands/teach.md    →  /teach   (project-level — checked into repo, shared with team)
+.claude/commands/review.md   →  /review  (project-level)
+~/.claude/commands/commit.md →  /commit  (personal — available across all projects)
+```
+
+The filename becomes the slash command. `review.md` → `/review`. Your existing `teach.md` and `review.md` files in `.claude/commands/` are skills — confirmed by reading the repo.
+
+**Project-level vs personal:**
+- `.claude/commands/` → checked into the repo, every developer gets the same skills (same principle as shared git hooks)
+- `~/.claude/commands/` → personal, only on your machine, not in source control
+
+**Skills vs built-in commands:**
+- Built-ins (`/clear`, `/compact`, `/cost`) → baked into Claude Code, cannot be changed
+- Skills → yours to write, version, and distribute per project
+
+---
+
+**Best Practices for Using Claude Code**
+
+The core shift: Claude Code is not a chat assistant — it is an agent you delegate tasks to.
+
+| Chat thinking | Agent delegation thinking |
+|---|---|
+| "Can you help me fix this bug?" | "Fix the null pointer in `handler.py:47`. Run the tests after." |
+| "What should I do about auth?" | "Read `eligibility_stack.py`, add IAM role for Bedrock scoped to this account only." |
+| "Here's my code, what do you think?" | "Review `multi_agent_demo.py` for missing `inferenceConfig` on any `converse()` call. List every occurrence." |
+
+**Key practices:**
+- Give it a target, not a question — "Fix", "Add", "Review", "Refactor" with specific scope
+- Reference files by path — Claude Code will read them; don't paste code into the prompt
+- Tell it what done looks like — "after the change, flake8 should pass" beats "make it cleaner"
+- Use `/clear` between unrelated tasks — stale context from a previous task bleeds into the next
+- Let it run commands — Claude Code can execute your test suite, see output, and self-correct; stopping it from running code removes half its value
+- CLAUDE.md is your persistent briefing — anything you repeat across sessions belongs there
+
+---
+
+**Multi-File Edit Strategies**
+
+Claude Code has no transaction model — if interrupted mid-task, you may have partial changes across files.
+
+**Safe patterns:**
+- Tell it the full scope upfront — "Rename `call_bedrock` to `invoke_agent` across all files in `agentic-loop/`" beats incremental requests that lose context
+- Ask for a plan before edits — "List every file you'll need to change, then wait." Review the list, then proceed
+- Use git as your safety net — commit clean state before a large multi-file task; `git checkout .` recovers everything if the result is wrong
+- Verify with a command after — "Run `grep -r 'call_bedrock' .` to confirm no occurrences remain"
+- Don't mix unrelated concerns in one prompt — split them into separate tasks with `/clear` between
+
+---
+
+**Git Integration**
+
+What Claude Code can do with git natively:
+- Read `git diff` and `git log` to understand what changed before writing a commit message
+- Stage specific files (not `git add -A` which can accidentally include `.env`)
+- Write commit messages that follow your `CATEGORY: description` format from CLAUDE.md
+- Read PR diffs when given a branch or PR context
+
+What it does not do automatically:
+- Push to remote (must be asked explicitly)
+- Create branches (you do that, or tell it to explicitly)
+- Resolve merge conflicts without you reviewing
+
+**Practical use:** Before a CDK deploy, `/commit` reads the diff, sees `eligibility_stack.py` changed, and writes `FEAT: add Bedrock IAM role to eligibility stack` — matching your convention without you thinking about it.
+
+---
+
+**MCP Servers in Claude Code**
+
+Configured in `~/.claude/settings.json`. When Claude Code starts, it connects to those servers and their tools appear alongside built-in tools — file read, bash, etc. Claude can call them during any coding task.
+
+**Dev-time vs runtime — critical distinction:**
+
+| | MCP in Claude Code | Tool use in Lambda |
+|---|---|---|
+| When it runs | While you are writing code | When agent processes a transaction |
+| Who calls it | Claude Code CLI | Your Lambda agentic loop |
+| Purpose | Helps you code | Drives agent behavior in production |
+
+Same protocol, completely separate setup.
+
+**What this unlocks for your stack:** An MCP server exposing `get_member_history(member_id)` lets Claude Code call DynamoDB while helping you write code — it sees real data shapes before generating Lambda code.
+
+---
+
+**Azure DevOps CI/CD Integration**
+
+Claude Code can run headlessly — no interactive terminal, no human in the loop. The `--print` flag outputs to stdout for pipeline consumption.
+
+**Three pieces of a CI review system — where each lives:**
+
+| Piece | Where it lives | Why |
+|---|---|---|
+| Instruction to Claude (what to look for) | Skill file (`.claude/commands/review-regions.md`) | Specific, bounded task; CLAUDE.md defines the convention but the skill gives Claude the CI task |
+| Credential (`ANTHROPIC_API_KEY`) | Azure DevOps secret variable, referenced in YAML as `$(ANTHROPIC_API_KEY)` | Never hardcode credentials — same rule as `AWS_REGION` from `os.getenv()` |
+| Enforcement (what blocks the PR) | Azure DevOps pipeline step reading Claude's stdout | Can't be bypassed; git hooks can be skipped with `--no-verify`, pipeline gates cannot |
+
+**Common mistake corrected:** Git hooks run locally and can be bypassed. Pipeline steps are the hard enforcement gate — they run on push, not on commit, and developers cannot skip them.
+
+**Two-layer enforcement pattern:**
+```
+Layer 1: git pre-commit hook   → catches it locally, developer can bypass with --no-verify
+Layer 2: Azure DevOps pipeline → catches it on push, cannot be bypassed, produces audit log
+```
+
+Both layers run the same check. The pipeline is the authoritative gate.
+
+---
+
 ## Key Takeaways (Cumulative)
 
 1. **AI is a tool, not a replacement for code** — use it only where code genuinely breaks down
@@ -936,6 +1180,15 @@ Three coordination patterns built and run end-to-end against real Bedrock calls.
 28. **Temperature must be set per agent call** — in multi-agent systems there is no shared inferenceConfig; every `converse()` call needs its own `temperature=0.0` or it defaults to non-deterministic
 29. **Self-reported confidence is not calibrated probability** — Claude's `"confidence": 72` is introspective, not a calibrated score; never use it as a hard routing threshold without validation
 30. **Parallel speedup scales with I/O-bound work** — full Bedrock round-trips gave 2.54× vs 2.18× for tool calls; the longer each task waits on network, the more parallelism pays off
+31. **CLAUDE.md sets defaults, not overrides** — encodes project conventions once so every session starts with the right context; keep it short and specific
+32. **Claude Code hooks are not git hooks** — git hooks run on `git commit`; Claude Code hooks run on tool calls (PreToolUse, PostToolUse); both layers are needed
+33. **/compact compresses context, /clear resets it** — use /compact mid-session to stay within context limits while preserving history; use /clear only when starting a completely unrelated task
+34. **Skills and commands are the same thing** — "skills" is the concept, "commands" is the folder name; `.claude/commands/teach.md` is a skill invoked as `/teach`
+35. **Delegate to Claude Code, don't chat with it** — give it a target verb with specific scope ("Fix X in file Y, run tests after") not an open-ended question
+36. **Commit clean state before any multi-file task** — Claude Code has no transaction model; git is your rollback mechanism
+37. **MCP in Claude Code is dev-time, tool use in Lambda is runtime** — same protocol, completely separate setup and purpose
+38. **CI enforcement belongs in the pipeline, not git hooks** — git hooks can be bypassed with `--no-verify`; Azure DevOps pipeline gates cannot
+39. **Skill file vs CLAUDE.md for CI tasks** — CLAUDE.md defines the convention; the skill file gives Claude the specific bounded task to run in the pipeline
 
 ---
 
@@ -948,7 +1201,7 @@ Three coordination patterns built and run end-to-end against real Bedrock calls.
 5. ✅ Prompt engineering — all techniques
 6. ✅ Agentic loops deep dive (tool use, memory, human-in-loop, reflection, parallel, RAG, multi-agent)
 7. ✅ Multi-agent orchestration — orchestrator + workers, sequential pipeline, parallel specialists
-8. ⬜ Claude Code — how to use it effectively as a developer tool
+8. ✅ Claude Code — slash commands, CLAUDE.md, hooks, skills, best practices, multi-file edits, git integration, MCP, CI/CD
 9. ⬜ MCP (Model Context Protocol) — building and connecting MCP servers
 10. ⬜ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ⬜ Step Functions for multi-step workflows
