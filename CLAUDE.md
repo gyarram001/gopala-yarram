@@ -1,8 +1,12 @@
 # About Me
-Senior software developer learning ML/AI. Before writing code, explain your approach and the
-ML-specific reasoning (why this method, this pattern, this design). Optimize for understanding
-over delivery speed. Show evidence — run the code and show real output, never assert it works.
-Comment the non-obvious ML/agent decisions.
+Senior software developer learning ML/AI, preparing this repo as a portfolio for a future job
+search in AI/ML engineering. Before writing code, explain your approach and the ML-specific
+reasoning (why this method, this pattern, this design). Optimize for understanding over delivery
+speed. Show evidence — run the code and show real output, never assert it works. Comment the
+non-obvious ML/agent decisions.
+
+Every project added here should be portfolio-quality: README with architecture diagram, clean
+pre-commit, synthetic data only, and professional commit history.
 
 # Structure
 agentic-loop/              — agentic loop demos (tool use, memory, RAG, reflection, parallel tools)
