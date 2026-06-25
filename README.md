@@ -26,6 +26,7 @@ JSON output, `temperature=0.0`, and a PHI-safe pre-commit pipeline.
 | [`agentic-loop/`](agentic-loop/) | 6 patterns: tool use, memory, RAG, reflection, parallel, human-in-loop | Bedrock, DynamoDB, SNS | Intermediate |
 | [`agentic-loop/multi-agent/`](agentic-loop/multi-agent/) | 3 orchestration patterns | Bedrock | Advanced |
 | [`mcp-server/`](mcp-server/) | MCP server with 2 tools + Lambda client demo | Bedrock, DynamoDB | Advanced |
+| [`langchain-demo/`](langchain-demo/) | LangChain abstractions over raw Bedrock — chain, prompt template, output parser | Bedrock | Intermediate |
 | [`hooks/`](hooks/) | Pre-commit: PHI scanner, commit enforcer, AI code review | Bedrock | Tooling |
 
 ---
@@ -345,6 +346,8 @@ amazon-bedrock-demos/
 ├── eligibility-agent/        # Production CDK project (SQS → Lambda → DynamoDB)
 ├── agentic-loop/             # 6 advanced agentic pattern demos
 │   └── multi-agent/          # 3 multi-agent orchestration patterns
+├── mcp-server/               # MCP server with eligibility tools + Lambda client demo
+├── langchain-demo/           # LangChain abstractions over raw Bedrock
 ├── hooks/                    # Pre-commit hooks (PHI, commit-msg, AI review)
 └── docs/                     # Learning summary, AI engineer plan
 ```

@@ -1198,6 +1198,140 @@ Both layers run the same check. The pipeline is the authoritative gate.
 
 ---
 
+---
+
+## Session 10 — June 25, 2026
+
+### LangChain — Abstractions Over Raw Bedrock
+
+---
+
+**Why LangChain exists**
+
+Every AI application is a pipeline: input comes in → gets transformed by components → output comes out. LangChain gives you standardized, reusable components for each stage and a way to connect them with the `|` pipe operator (LCEL — LangChain Expression Language).
+
+The raw Bedrock code you built in Sessions 3-6 works and is correct. LangChain removes the boilerplate — message dict construction, response parsing, inferenceConfig on every call — so you focus on the logic.
+
+---
+
+**The 4 components you need**
+
+**1. `ChatBedrock` — model wrapper**
+
+Replaces `bedrock.converse()`. Set `model_kwargs={"temperature": 0.0}` once on the object; applies to every call.
+
+```python
+from langchain_aws import ChatBedrock
+llm = ChatBedrock(client=bedrock_client, model_id=MODEL_ID, model_kwargs={"temperature": 0.0})
+```
+
+**2. `ChatPromptTemplate` — reusable prompt structure**
+
+Replaces manually building `messages = [{"role": "user", "content": [...]}]` every call. Define once, fill at call time via `chain.invoke({"key": value})`.
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a healthcare eligibility specialist."),
+    ("user", "Evaluate this transaction: {transaction}")
+])
+```
+
+**3. `JsonOutputParser` — replaces `parse_bedrock_json()`**
+
+Strips markdown fences, parses JSON, returns Python dict. Raises `OutputParserException` on failure instead of returning `{"error": "parse_failed"}` — catch in production.
+
+**4. Chain — `|` operator connects all three**
+
+```python
+chain = prompt | llm | JsonOutputParser()
+result = chain.invoke({"transaction": transaction})
+# result is already a Python dict — no manual parsing
+```
+
+Output of left feeds input of right. LangChain manages data flow between steps automatically.
+
+---
+
+**The core LangChain vs LangGraph distinction**
+
+| Pattern | Tool |
+|---|---|
+| A → B → C → D (straight line, no loops) | LangChain chain |
+| A → loop until condition | LangGraph |
+| A → fan-out to parallel branches → merge | LangGraph |
+| A → decision → B or C (branching) | LangGraph |
+
+**LangChain does NOT give you:** loops, state across steps, branching based on model output, or agents that decide what to do next. That is LangGraph's job.
+
+From your existing work:
+- Session 4 prompt chain (validate → payer check → risk → action) → LangChain
+- Session 5 agentic loop (stopReason loop, tool use) → LangGraph
+- Session 7 parallel specialists (fan-out → merge) → LangGraph
+
+---
+
+**Where LangChain earns its place**
+
+The real value is model switching. To swap Claude for GPT-4:
+
+```python
+# Before — Claude on Bedrock
+from langchain_aws import ChatBedrock
+llm = ChatBedrock(model_id="us.anthropic.claude-sonnet-4-5...")
+
+# After — GPT-4
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
+```
+
+Everything below `llm =` — chain, prompt, parser — is identical. Without LangChain, switching models means rewriting the client, auth, message format, response parsing, and token extraction across every file.
+
+Other scenarios where it pays off:
+- Team sharing consistent patterns across multiple agents
+- Adding LangSmith for automatic tracing (zero code change — just env vars)
+- Rapid prototyping of multi-step pipelines
+
+---
+
+**What LangChain returns — the `AIMessage` object**
+
+Instead of `response["output"]["message"]["content"][0]["text"]`, LangChain gives you:
+
+```python
+response.content           # the text
+response.response_metadata # stopReason, token usage
+```
+
+Note: `langchain-aws` version differences can cause token metadata to return `None` — use LangSmith for reliable token tracking in production.
+
+---
+
+**LangSmith — observability layer (optional)**
+
+Cloud platform that automatically captures every chain step — inputs, outputs, tokens, latency — as a visual trace. Zero code changes: enabled via environment variables only.
+
+```bash
+export LANGCHAIN_TRACING_V2=true
+export LANGCHAIN_API_KEY=your_key
+export LANGCHAIN_PROJECT=eligibility-demo
+```
+
+HIPAA note: traces go to LangChain's servers. Use self-hosted LangSmith Enterprise for production PHI. Fine for synthetic data.
+
+---
+
+**What was built — `langchain-demo/simple_chain.py`**
+
+Reproduced Session 3 eligibility validation using LangChain:
+- `ChatBedrock` wrapping boto3
+- `ChatPromptTemplate` replacing manual message dicts
+- `JsonOutputParser` replacing `parse_bedrock_json()`
+- Full chain with `|` operator
+- Side-by-side comparison showing what each LangChain component replaced
+
+---
+
 ## Learning Curriculum (in order)
 
 1. ✅ LLM vs Model vs Agent
@@ -1209,7 +1343,7 @@ Both layers run the same check. The pipeline is the authoritative gate.
 7. ✅ Multi-agent orchestration — orchestrator + workers, sequential pipeline, parallel specialists
 8. ✅ Claude Code — slash commands, CLAUDE.md, hooks, skills, best practices, multi-file edits, git integration, MCP, CI/CD
 9. ✅ MCP (Model Context Protocol) — building and connecting MCP servers
-10. ⬜ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
+10. 🔄 LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ⬜ Step Functions for multi-step workflows
 12. ⬜ n8n — build AI-powered workflows with no/low code
 13. ⬜ Bedrock Agents (managed service vs DIY)
