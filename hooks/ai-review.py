@@ -29,8 +29,10 @@ import sys
 _MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 _REGION = "us-east-1"
 
-# Maximum diff characters sent to Claude (avoids token-limit errors on huge commits)
-_MAX_DIFF_CHARS = 14_000
+# Maximum diff characters sent to Claude.
+# 14_000 was too small — large commits truncated mid-line causing Claude to flag
+# valid code as "syntax errors". 40_000 ≈ ~10k tokens, well within the model limit.
+_MAX_DIFF_CHARS = 40_000
 
 _SYSTEM_PROMPT = """\
 You are a senior software engineer performing a pre-commit security and quality review.
