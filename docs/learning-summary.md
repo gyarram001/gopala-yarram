@@ -1332,6 +1332,147 @@ Reproduced Session 3 eligibility validation using LangChain:
 
 ---
 
+### LangGraph — Stateful Agent Workflows
+
+---
+
+**What LangGraph adds over LangChain**
+
+LangChain handles straight pipelines. LangGraph handles everything that needs a loop, branching, or state that persists across steps. It models your agent as a graph — nodes are actions, edges are routing decisions.
+
+Three core concepts replace your Session 5 manual agentic loop entirely:
+
+| Session 5 manual code | LangGraph replacement |
+|---|---|
+| `messages = []` + manual `.append()` | `AgentState` TypedDict + `add_messages` reducer |
+| `while iteration < MAX_ITERATIONS` | `recursion_limit` in `app.invoke()` |
+| `if stopReason == "tool_use"` | Conditional edge → `run_tools` node |
+| `if stopReason == "end_turn": break` | Conditional edge → `END` |
+| `run_tool()` dispatcher + `ThreadPoolExecutor` | `ToolNode(tools)` — parallel by default |
+| `toolConfig={"tools": ...}` per call | `llm.bind_tools(tools)` once |
+
+---
+
+**The 4 LangGraph concepts**
+
+**State (`TypedDict` + `add_messages` reducer)**
+
+Typed dict that flows through the entire graph. Every node reads from it and writes to it. `add_messages` is a reducer — appends to the list instead of replacing it. Replaces the `messages` array you managed manually.
+
+```python
+class AgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+    risk_level: str
+```
+
+**Nodes**
+
+Plain Python functions. Take state in, return updated state out. Any single focused action — call LLM, run tools, parse risk, approve, pause for human — belongs in its own node.
+
+**Edges + conditional edges**
+
+Static edge: always go to this node next.
+Conditional edge: inspect state, return a string, route to different nodes based on that string.
+
+```python
+graph.add_conditional_edges(
+    "assess_risk",
+    route_on_risk,                    # returns "low", "medium", or "high"
+    {"low": "auto_approve", "medium": "validate", "high": "human_review"}
+)
+```
+
+**Compile + run**
+
+```python
+app = graph.compile(checkpointer=checkpointer)
+result = app.invoke({"messages": [...]}, config={"configurable": {"thread_id": "tx-001"}})
+```
+
+---
+
+**Four demos built — `langgraph-demo/`**
+
+**1. `eligibility_graph.py` — Basic agentic loop as a graph**
+
+Rebuilt Session 5 agentic loop as a LangGraph graph. Same behavior, explicit structure. Proved Claude still batches tool calls automatically — two turns, both tools in turn 1. `ToolNode` replaced the manual tool dispatcher + `ThreadPoolExecutor`.
+
+**2. `hitl_graph.py` — Human-in-the-loop**
+
+Added `interrupt()` and `MemorySaver` checkpointer. HIGH-risk decisions pause the graph and surface context to a reviewer. `Command(resume=decision)` resumes from the exact pause point.
+
+Replaced the Session 5 DynamoDB polling pattern:
+
+| Session 5 | LangGraph HITL |
+|---|---|
+| Write PENDING_REVIEW to DynamoDB | `interrupt()` saves to checkpointer |
+| `while True: poll every 1 second` | Gone — graph pauses natively |
+| Human writes to DynamoDB | `Command(resume=decision)` |
+| Lambda reads + continues | `app.invoke()` resumes from saved state |
+
+**3. `branching_graph.py` — Three-way conditional branching**
+
+Three risk branches, each a different node with different behavior:
+- LOW → `auto_approve` — zero extra LLM calls, instant
+- MEDIUM → `validate` — focused second Claude call to verify documentation
+- HIGH → `human_review` — `interrupt()` pauses for human
+
+Each branch pays exactly what it needs to. LOW risk never pays the cost of a second LLM call or human wait.
+
+**4. `persistence_demo.py` — State survives process restart**
+
+Replaced `MemorySaver` with `SqliteSaver`. Proved state survives a complete Python process restart — two different PIDs, one continuous graph execution.
+
+Phase 1 (PID 52683): graph runs → hits interrupt → state written to `checkpoints.db` → process exits.
+Phase 2 (PID 52731): opens same `checkpoints.db` → loads 6 messages + risk_level by `thread_id` → resumes `human_review` → finishes. Zero repeat tool calls, zero repeat LLM calls.
+
+Production mapping:
+- `SqliteSaver` → `PostgresSaver` (RDS Aurora) or custom `DynamoDBSaver`
+- `thread_id` → `transaction_id` from SQS message
+- Two Python processes → two separate Lambda invocations
+
+---
+
+**Graph visualization — two built-in methods**
+
+```python
+app.get_graph().print_ascii()   # terminal debugging — confirms wiring
+app.get_graph().draw_mermaid()  # paste directly into README (requires grandalf)
+```
+
+`draw_mermaid()` output satisfies the CLAUDE.md requirement for Mermaid architecture diagrams in every project README.
+
+---
+
+**When LangGraph earns its place in production**
+
+Use it when you have at least one of:
+- Agent flow branches based on model output (LOW/MEDIUM/HIGH routing)
+- Pause and resume across process boundaries (prior auth human review)
+- 3+ nodes owned by different teams (explicit ownership boundaries)
+- Audit trail required (checkpointer saves every state transition for HIPAA)
+
+Do NOT use it for:
+- Straight-line pipelines with no branching (use LangChain chain)
+- Single agents that call tools and return an answer (raw Bedrock is simpler)
+- Latency-critical paths (framework overhead, though minimal)
+
+---
+
+**`ToolNode` — parallel tool execution built in**
+
+`ToolNode(tools)` replaces your Session 6 `ThreadPoolExecutor` pattern. Tools Claude batches in one turn are executed in parallel automatically. No threading code required.
+
+Sequential tool execution is handled by Claude via docstrings — "Always call this before check_payer_requirements" tells Claude to call tools in separate turns when order matters.
+
+---
+
+**Key production insight — `thread_id` is the foreign key**
+
+Links separate Lambda invocations to the same graph run. SQS `transaction_id` becomes `thread_id`. Checkpointer uses it to save and load state. Without it, no two invocations can share state.
+
+---
+
 ## Learning Curriculum (in order)
 
 1. ✅ LLM vs Model vs Agent
@@ -1343,7 +1484,7 @@ Reproduced Session 3 eligibility validation using LangChain:
 7. ✅ Multi-agent orchestration — orchestrator + workers, sequential pipeline, parallel specialists
 8. ✅ Claude Code — slash commands, CLAUDE.md, hooks, skills, best practices, multi-file edits, git integration, MCP, CI/CD
 9. ✅ MCP (Model Context Protocol) — building and connecting MCP servers
-10. 🔄 LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
+10. ✅ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ⬜ Step Functions for multi-step workflows
 12. ⬜ n8n — build AI-powered workflows with no/low code
 13. ⬜ Bedrock Agents (managed service vs DIY)

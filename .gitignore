@@ -17,5 +17,10 @@ node_modules/
 !.claude/commands/
 !.claude/commands/**
 
+# LangGraph runtime artifacts
+*.db
+*.db-shm
+*.db-wal
+
 # OS
 .DS_Store
