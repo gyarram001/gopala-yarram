@@ -1,5 +1,5 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** June 23, 2026
+**Started:** June 14, 2026 | **Last Updated:** June 26, 2026
 
 ---
 
@@ -1195,6 +1195,15 @@ Both layers run the same check. The pipeline is the authoritative gate.
 43. **Transport determines deployment model** — stdio for Claude Code (local), Streamable HTTP for Lambda/team server; same server code, different mcp.run(transport=) argument
 44. **MCP reusability follows microservice principles** — build the tool once, any agent connects; change it once, all agents get the update; description field replaces the REST API contract
 45. **One server with client-side filtering beats many servers for small teams** — operational overhead of multiple servers outweighs token savings until you hit a real security boundary reason to split
+46. **Step Functions = infrastructure orchestration; LangGraph = code-level agent workflows** — both model state machines but solve different problems; Step Functions handles retry/HITL/visibility across services, LangGraph handles agent loops and branching inside a single process
+47. **Standard workflow for HITL, Express for high-volume short runs** — Standard supports pause-for-days and exactly-once semantics; Express caps at 5 minutes and doesn't support waitForTaskToken
+48. **waitForTaskToken: the Lambda return value is ignored** — execution only resumes when `SendTaskSuccess` is called with the token; Lambda finishing has no effect on the paused execution
+49. **`output_path="$.Payload"` unwraps the Lambda envelope** — without it the next state reads `$.Payload.risk_level` instead of `$.risk_level`; set it on every `LambdaInvoke`
+50. **Choice default → Fail, not AutoApprove** — unknown risk level should fail loudly; a failed execution is investigable, a silently wrong auto-approval causes a real claim error
+51. **Per-field regex validation prevents prompt injection at the source** — validate each allowlisted value against its expected pattern (`_FIELD_PATTERNS`) before it enters the prompt; XML delimiters add a second layer
+52. **Never store member_id in audit records** — `transaction_id` is the audit key; member context belongs in the source system, fetched via separate authorized lookup
+53. **Fail at synth time, not deploy time** — assert `CDK_DEFAULT_ACCOUNT` is set in `app.py`; if `self.account` resolves to `'*'`, Bedrock IAM policy silently becomes wildcard
+54. **AI code review on truncated diff hallucinates bugs** — reviewer saw `"maxToken"` (14k cutoff mid-string) and called valid Python a syntax error; always ensure reviewers see complete context
 
 ---
 
@@ -1473,6 +1482,230 @@ Links separate Lambda invocations to the same graph run. SQS `transaction_id` be
 
 ---
 
+---
+
+## Weekly Review — June 26, 2026
+
+### Commits this week (June 20–25)
+
+**June 20 — repo bootstrap and agentic loop demos merged to main**
+- Merged prior work: human-in-the-loop (DynamoDB/SNS polling), reflection + ReAct, parallel tool execution, RAG with Titan embeddings
+- Added README covering all demos; set default branch to `main`
+
+**June 21–22 — multi-agent orchestration (Session 7)**
+- Built `multi_agent_demo.py` with three coordination patterns: orchestrator+workers, sequential pipeline, parallel specialists
+- Fixed missing `inferenceConfig temperature=0.0` across all `call_agent` invocations (critical correctness bug)
+- Moved pre-commit hooks and Claude commands to repo root; expanded `CLAUDE.md`
+
+**June 23–24 — Claude Code tooling + MCP server (Sessions 8 & 9)**
+- Expanded `CLAUDE.md` with full conventions, commands, and guardrails
+- Built `mcp_server.py` exposing eligibility tools; fixed DynamoDB key bug; added `max_tokens` guard
+- Made repo portfolio-ready: READMEs, badges, lint fixes
+
+**June 25 — LangChain + LangGraph (Session 10)**
+- `langchain-demo/simple_chain.py`: reproduced Session 3 eligibility validation using ChatBedrock + ChatPromptTemplate + JsonOutputParser + LCEL `|` pipe
+- `langgraph-demo/`: four demos — basic agentic loop as graph, HITL with `interrupt()` + `MemorySaver`, three-way conditional branching, SqliteSaver persistence surviving process restart
+
+### Curriculum items marked ✅ this week
+- Item 9: MCP (Model Context Protocol)
+- Item 10: LangChain + LangGraph
+
+---
+
+---
+
+---
+
+## Session 11 — June 26, 2026
+
+### AWS Step Functions for Multi-Step Workflows
+
+---
+
+**What Step Functions is — and what it is NOT**
+
+Step Functions is infrastructure-level orchestration. Lambda is code-level execution. LangGraph is code-level stateful agent workflows.
+
+| Layer | Tool | What it handles |
+|---|---|---|
+| Infrastructure | Step Functions | Retry, pause for days, parallel branches, state machine visibility — all serverless |
+| Code (agents) | LangGraph | Loops, branching based on model output, state that persists across calls |
+| Compute | Lambda | The actual business logic — one focused job per function |
+
+The key mental model: Step Functions is like a traffic controller for your Lambdas. Each Lambda does one thing well; Step Functions decides which runs when and what to do if it fails.
+
+---
+
+**ASL — Amazon States Language**
+
+The JSON definition of a Step Functions state machine. Every state machine is a JSON document with two keys:
+
+```json
+{
+  "StartAt": "ValidateFields",
+  "States": {
+    "ValidateFields": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:...:validate_fn",
+      "Next": "AssessRisk",
+      "Retry": [{"ErrorEquals": ["Lambda.ServiceException"], "MaxAttempts": 3}],
+      "Catch": [{"ErrorEquals": ["ValidationError"], "Next": "TransactionRejected"}]
+    }
+  }
+}
+```
+
+CDK generates the ASL from Python constructs — you don't write the JSON directly. `sfn.StateMachine`, `tasks.LambdaInvoke`, `sfn.Choice`, `sfn.Fail` compile down to ASL at `cdk synth` time.
+
+---
+
+**State types — five you need to know**
+
+| State type | CDK construct | What it does |
+|---|---|---|
+| `Task` | `tasks.LambdaInvoke` | Calls Lambda (or any AWS service) |
+| `Choice` | `sfn.Choice` + `sfn.Condition` | Branches based on a value in the state |
+| `Parallel` | `sfn.Parallel` | Runs branches at the same time, waits for all |
+| `Map` | (built-in) | Runs the same step over each item in a list |
+| `Wait for Task Token` | `LambdaInvoke` with `IntegrationPattern.WAIT_FOR_TASK_TOKEN` | Pauses execution until a callback arrives |
+
+**Choice vs Parallel — the distinction you got wrong in the quiz:**
+- `Choice` = pick one branch OR another based on a condition — only one path runs
+- `Parallel` = run multiple branches simultaneously — all paths run at the same time, results are merged
+
+---
+
+**waitForTaskToken — the HITL pattern**
+
+The most important pattern for healthcare workflows. Execution pauses (no Lambda cost, no polling) until a reviewer calls `states:SendTaskSuccess` with the task token.
+
+```
+Step Functions generates unique token for this execution + state
+        ↓
+Calls HumanReview Lambda with {"transaction": {...}, "taskToken": "AbCdEf..."}
+        ↓
+PAUSES — execution costs nothing while paused
+        ↓
+Lambda stores token in DynamoDB — returns {"status": "QUEUED"} → ignored
+        ↓
+Reviewer looks up token, approves/denies, calls:
+    states.send_task_success(taskToken=token, output={"human_decision": "APPROVED"})
+        ↓
+Step Functions RESUMES → output flows to SaveDecision
+```
+
+Key insight: the Lambda's return value is completely ignored. The execution only resumes when `SendTaskSuccess` is called with the exact token — not when the Lambda finishes. This is why you set `heartbeat=Duration.days(3)` — if nothing calls the callback in 3 days, Step Functions fails the execution rather than waiting forever.
+
+---
+
+**Standard vs Express workflows**
+
+| | Standard | Express |
+|---|---|---|
+| Max duration | 1 year | 5 minutes |
+| Execution model | Exactly-once | At-least-once |
+| HITL support | Yes — can pause for days | No — terminates at 5 min |
+| Cost | Per state transition | Per duration + requests |
+| Best for | HITL, long-running workflows | High-volume, short runs |
+
+**Rule:** Healthcare prior auth workflows → Standard. High-volume short classification pipelines → Express.
+
+---
+
+**Pipeline built — eligibility authorization pipeline**
+
+```
+Input: eligibility transaction (member_id, service_type, payer, service_date)
+
+ValidateFields Lambda          ← checks required fields, raises ValidationError on failure
+        ↓
+AssessRisk Lambda               ← calls Bedrock (Claude), returns risk_level
+        ↓
+RouteOnRisk (Choice state)      ← reads $.risk_level
+    ├── HIGH   → HumanReview (waitForTaskToken — pauses up to 3 days)
+    │                   ↓
+    └── LOW/MEDIUM → SaveDecision (DynamoDB write)
+            ↑ (human review path merges here after callback)
+
+TransactionRejected (Fail)  ← ValidationError Catch target
+UnknownRiskLevel (Fail)     ← Choice default — fails loudly on unexpected risk values
+```
+
+**The `output_path="$.Payload"` detail:** Lambda wraps its return value in a `Payload` envelope. Without `output_path="$.Payload"`, the next state sees `$.Payload.risk_level` instead of `$.risk_level`. Setting it on `LambdaInvoke` unwraps the envelope automatically.
+
+**Choice default → Fail, not AutoApprove:** When risk_level is anything other than LOW/MEDIUM/HIGH (e.g., Bedrock hallucinated "UNKNOWN"), the `otherwise` branch hits a `Fail` state. Failing loudly is always safer than silently auto-approving. A human can investigate a failed execution; a silently wrong approval causes a real claim error.
+
+---
+
+**What you gain and give up vs a single Lambda**
+
+| Gain | Lose |
+|---|---|
+| Retry with backoff per step, isolated — one step's retry doesn't restart the whole pipeline | Latency overhead per state transition (~100ms per hop) |
+| Pause for days (HITL) — Lambda max is 15 minutes | Cost per state transition (small but not zero) |
+| Visual execution graph in AWS console — see exactly where a failure happened | Local testing complexity — no local Step Functions emulator; must use AWS or simulate step by step |
+| Exactly-once semantics for each step (Standard) | More moving parts to deploy and maintain |
+| Dead letter queue built in — failed executions are retained | |
+| Each Lambda has one job — easier to test, debug, and own | |
+
+The single-Lambda approach fails when: any step takes > 15 minutes, you need HITL with a human reviewer, or you need granular retry/visibility per step.
+
+---
+
+**CDK Step Functions constructs — key patterns**
+
+```python
+# Choice state with OR condition
+risk_router = sfn.Choice(self, "RouteOnRisk")
+risk_router.when(
+    sfn.Condition.string_equals("$.risk_level", "HIGH"),
+    human_review_task,
+)
+risk_router.when(
+    sfn.Condition.or_(
+        sfn.Condition.string_equals("$.risk_level", "LOW"),
+        sfn.Condition.string_equals("$.risk_level", "MEDIUM"),
+    ),
+    save_decision_task,
+)
+risk_router.otherwise(unknown_risk)   # Fail state — never silently auto-approve
+
+# waitForTaskToken — passes generated token to Lambda
+human_review_task = tasks.LambdaInvoke(
+    self, "HumanReviewTask",
+    lambda_function=human_review_fn,
+    integration_pattern=sfn.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+    payload=sfn.TaskInput.from_object({
+        "transaction": sfn.JsonPath.entire_payload,
+        "taskToken": sfn.JsonPath.task_token,   # Step Functions injects this
+    }),
+    heartbeat=Duration.days(3),
+)
+
+# Chain definition
+definition = validate_task.next(assess_risk_task).next(risk_router)
+```
+
+---
+
+**Security patterns the AI code review enforced (8 rounds)**
+
+The AI code review hook (built in Session 8) found real security issues across 8 rounds of commits. Each finding was legitimate:
+
+| Finding | Fix | Why it matters |
+|---|---|---|
+| `resources=["*"]` on Bedrock IAM | Scoped ARN to specific model/inference-profile via regex parse | Compromised Lambda can't invoke every Bedrock model in the account |
+| Shared Lambda role | Per-function CDK `grant_*` — auto-creates minimal role per function | Blast radius isolation — one function's role can't be used by another |
+| `json.dumps(event)` in Bedrock prompt | `PROMPT_FIELDS` frozenset allowlist | PHI (member_id, validation_status) never reaches Bedrock or its logs |
+| `member_id` written to DynamoDB | Removed from audit records in both handlers | `transaction_id` is the audit key; member context belongs in the source system |
+| Prompt injection via field values | Per-field regex (`_FIELD_PATTERNS`) + XML delimiters around data in prompt | defense-in-depth: regex blocks malformed values; XML tags prevent instruction smuggling |
+| `self.account` might be `'*'` | Fail-fast assertion in `app.py` if `CDK_DEFAULT_ACCOUNT` unset | Silent wildcard IAM permissions are worse than a failed deploy |
+| 14k diff limit in hook | Raised `_MAX_DIFF_CHARS` from 14k to 40k | Truncated diff caused AI to see `"maxToken"` and hallucinate "syntax error" — the bug was in the reviewer, not the code |
+
+**The meta-lesson:** An AI reviewer reading truncated content will hallucinate bugs that don't exist — the same way an LLM given a truncated context window produces confidently wrong answers. Always ensure your AI tools see complete context.
+
+---
+
 ## Learning Curriculum (in order)
 
 1. ✅ LLM vs Model vs Agent
@@ -1485,7 +1718,7 @@ Links separate Lambda invocations to the same graph run. SQS `transaction_id` be
 8. ✅ Claude Code — slash commands, CLAUDE.md, hooks, skills, best practices, multi-file edits, git integration, MCP, CI/CD
 9. ✅ MCP (Model Context Protocol) — building and connecting MCP servers
 10. ✅ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
-11. ⬜ Step Functions for multi-step workflows
+11. ✅ Step Functions for multi-step workflows
 12. ⬜ n8n — build AI-powered workflows with no/low code
 13. ⬜ Bedrock Agents (managed service vs DIY)
 14. ⬜ Embeddings + vector search (OpenSearch on AWS)
