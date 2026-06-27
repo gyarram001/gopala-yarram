@@ -1,6 +1,6 @@
-# AI/ML Engineer Transition — 6-Month Plan & Claude Tooling Workflow
+# Gen AI Engineer Transition — 6-Month Plan & Claude Tooling Workflow
 
-**Goal:** Transition into an ML Engineer / MLOps role; begin applying in ~6 months.
+**Goal:** Transition into a Gen AI Engineer role; begin applying in ~6 months.
 **Assumed pace:** ~10 hrs/week (weekday afternoons + weekends). Adjust the week numbers if that's off.
 **Head start you already have:** AWS Certified Developer – Associate. That earns you a **50% discount on your next AWS exam** and lets you **skip the foundational cloud courses** — go straight to the AI/ML prep.
 
@@ -8,28 +8,28 @@
 
 ## Part 1 — Certification Sequence
 
-Quick reality check first: the **AWS ML Specialty (MLS-C01) retired on March 31, 2026**, so if it was on an older roadmap, it's gone. The current path is role-based, and it lines up well with your goal.
+Quick reality check first: the **AWS ML Specialty (MLS-C01) retired on March 31, 2026**, so if it was on an older roadmap, it's gone. The current path is role-based and directly aligned to Gen AI Engineer.
 
 | Phase | Weeks | Certification | Cost (with your 50% off) | Why it's here |
 |---|---|---|---|---|
-| 1 | 1–4 | **AWS Certified AI Practitioner** (AIF-C01) | ~$50 | Fast win + résumé signal; common AI/ML/GenAI vocabulary |
-| 2 | 5–16 | **AWS Certified ML Engineer – Associate** (MLA-C01) | ~$75 | **The core target** — what ML/MLOps postings ask for |
-| 3 | 17–22 | **Claude Certified Architect – Foundations** | ~$99 | Differentiator; validates work you're already doing |
-| Stretch | post-6mo | **AWS GenAI Developer – Professional** (AIP-C01) | ~$300 | RAG / Bedrock / vector DBs — builds on your healthcare work |
+| 1 | 1–4 | **AWS Certified AI Practitioner** (AIF-C01) | ~$50 | Fast win + résumé signal; common AI/ML/GenAI vocabulary. Exam: July 10. |
+| 2 | 5–14 | **AWS GenAI Developer – Professional** (AIP-C01) | ~$150 | **The core target** — directly maps to Gen AI Engineer work: RAG, Bedrock, foundation models, vector DBs, agents |
+| 3 | 15–18 | **Claude Certified Architect – Foundations** | ~$99 | Differentiator; validates exactly what you've built in Sessions 1–11. Low additional prep needed. |
+| Later | optional | **AWS ML Engineer – Associate** (MLA-C01) | ~$75 | Pursue if you move toward MLOps / ML Platform Engineer roles specifically. Heavy SageMaker + classical ML — less relevant to Gen AI day-to-day. |
 
-### Phase 1 — Foundation & quick win (Weeks 1–4)
-**AWS Certified AI Practitioner.** Foundational, covers AI/ML, generative AI, and responsible AI. Typical prep is 2–3 weeks; you'll likely move faster. Gets a credential on your profile early and unlocks the discount chain.
+### Phase 1 — Foundation & quick win (Weeks 1–4) 🎯 Exam: July 10
+**AWS Certified AI Practitioner.** Foundational, covers AI/ML, generative AI, and responsible AI. Exam scheduled July 10. Study items 12–16 in curriculum cover the gaps (classical ML fundamentals, AWS AI service portfolio, responsible AI, ML governance).
 - *Resources:* free AWS Skill Builder Exam Prep Plan, plus your work Udemy sub.
 
-### Phase 2 — The core target (Weeks 5–16)
-**AWS Certified ML Engineer – Associate.** This is the one that maps directly to ML Engineer / MLOps roles — it's about *operating* ML in production, not academic modeling theory. Four domains: data preparation, model development, deployment & orchestration, monitoring & security, all on SageMaker. Most of your study hours go here, and you should be *building* alongside it (see Portfolio).
+### Phase 2 — The core target (Weeks 5–14)
+**AWS GenAI Developer – Professional.** This is the cert that maps directly to Gen AI Engineer roles. Covers: RAG architectures, Bedrock Knowledge Bases and Agents, foundation model selection, vector databases, prompt engineering at scale, evaluation of GenAI systems, cost optimization, responsible AI for GenAI. Your sessions 1–11 + curriculum items 17–20 give you a strong head start — focused additional prep on Bedrock Agents, embeddings, and advanced RAG.
+- **Start applying to roles around Week 12** — AI Practitioner done + GenAI Developer in progress + real portfolio is a credible package.
 
-### Phase 3 — Differentiator + start applying (Weeks 17–22)
-**Claude Certified Architect – Foundations.** You're unusually well-positioned: its exam domains (agentic architecture, Claude Code workflows, MCP integration, prompt engineering, context management) are almost exactly what your Cowork learning summary already covers. It's closed-book, so the hands-on work you've logged is what carries you. Few people hold it yet, which makes it a strong résumé differentiator.
-- **Start applying to roles around Week 18** — two AWS certs done + this in progress + a real portfolio is a credible package.
+### Phase 3 — Differentiator (Weeks 15–18)
+**Claude Certified Architect – Foundations.** You're unusually well-positioned: its exam domains (agentic architecture, Claude Code workflows, MCP integration, prompt engineering, context management) are almost exactly what your learning summary already covers. It's closed-book, so the hands-on work you've logged is what carries you. Few people hold it yet, which makes it a strong résumé differentiator for healthcare AI roles.
 
-### Stretch — post month 6
-**AWS GenAI Developer – Professional.** RAG architectures, foundation models, vector databases, Bedrock AgentCore. Pursue once you're interviewing or have landed something.
+### Optional — later
+**AWS ML Engineer Associate.** Heavy on SageMaker training jobs, feature engineering, and classical ML pipelines — not your day-to-day as a Gen AI Engineer. Pursue this if you shift toward MLOps or ML Platform Engineering specifically, or if a role you want lists it explicitly. Don't let it block your job search.
 
 ### Portfolio (runs in parallel — certs alone don't land ML jobs)
 You already have strong raw material. Polish 2–3 flagship GitHub projects:

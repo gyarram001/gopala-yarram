@@ -1737,8 +1737,8 @@ The AI code review hook (built in Session 8) found real security issues across 8
 19. ⬜ Advanced RAG patterns — query rewriting, HyDE, re-ranking, RAGAS evaluation
 20. ⬜ Multi-source RAG — retrieving from multiple knowledge bases in one query
 
-### Phase B — AWS ML Engineer Associate cert (items 21–27)
-*Goal: SageMaker depth + production ML patterns — core cert target*
+### Phase B — AWS GenAI Developer Professional cert (items 21–27)
+*Goal: RAG architectures, Bedrock Agents, vector DBs, foundation model selection, advanced GenAI patterns*
 
 21. ⬜ SageMaker fundamentals — training jobs, pipelines, endpoints, model registry
 22. ⬜ Structured outputs / JSON schema enforcement
