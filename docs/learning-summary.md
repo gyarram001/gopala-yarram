@@ -1708,6 +1708,9 @@ The AI code review hook (built in Session 8) found real security issues across 8
 
 ## Learning Curriculum (in order)
 
+### Phase A — AWS AI Practitioner cert + GenAI core (items 1–15)
+*Goal: cert + foundational GenAI engineering skills*
+
 1. ✅ LLM vs Model vs Agent
 2. ✅ Bedrock + first API call
 3. ✅ When to use AI vs code
@@ -1719,22 +1722,42 @@ The AI code review hook (built in Session 8) found real security issues across 8
 9. ✅ MCP (Model Context Protocol) — building and connecting MCP servers
 10. ✅ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ✅ Step Functions for multi-step workflows
-12. ⬜ n8n — build AI-powered workflows with no/low code
-13. ⬜ Bedrock Agents (managed service vs DIY)
-14. ⬜ Embeddings + vector search (OpenSearch on AWS)
+12. ⬜ Bedrock Agents (managed service vs DIY)
+13. ⬜ Embeddings + vector search (OpenSearch on AWS)
+14. ⬜ Advanced RAG patterns — query rewriting, HyDE, re-ranking, RAGAS evaluation
 15. ⬜ Multi-source RAG — retrieving from multiple knowledge bases in one query
-16. ⬜ Structured outputs / JSON schema enforcement
-17. ⬜ Streaming responses
-18. ⬜ Fine-tuning vs prompting — when to use which
-19. ⬜ Cost architecture — model selection strategy (Haiku vs Sonnet)
-20. ⬜ AI governance + HIPAA compliance for AI systems
-21. ⬜ Reliability (retries, idempotency, dead letter queues)
-22. ⬜ Security (prompt injection, PHI scrubbing)
-23. ⬜ Evaluation + testing agents
-24. ⬜ Harness engineering — building systematic test frameworks for AI agent evaluation
-25. ⬜ Observability (tracing, cost monitoring)
-26. ⬜ Real use case: denial analysis or free-text eligibility parser
-27. ⬜ Azure DevOps pipeline hooks
+
+### Phase B — AWS ML Engineer Associate cert (items 16–22)
+*Goal: SageMaker depth + production ML patterns — core cert target*
+
+16. ⬜ SageMaker fundamentals — training jobs, pipelines, endpoints, model registry
+17. ⬜ Structured outputs / JSON schema enforcement
+18. ⬜ Multi-modal — images + text with Claude Vision
+19. ⬜ Streaming responses
+20. ⬜ Fine-tuning vs prompting — when to use which
+21. ⬜ Cost architecture — model selection strategy (Haiku vs Sonnet), semantic caching, Bedrock Batch API
+22. ⬜ AI governance + HIPAA compliance for AI systems
+
+### Phase C — Production readiness + job search (items 23–31)
+*Goal: portfolio-quality projects + interview-ready on production AI topics*
+
+23. ⬜ Reliability (retries, idempotency, dead letter queues)
+24. ⬜ Security (prompt injection, PHI scrubbing)
+25. ⬜ Evaluation + testing agents
+26. ⬜ LLM-as-judge + prompt regression testing
+27. ⬜ Harness engineering — building systematic test frameworks for AI agent evaluation
+28. ⬜ Observability (tracing, cost monitoring) + data drift monitoring
+29. ⬜ AWS Comprehend Medical — healthcare entity extraction paired with Bedrock
+30. ⬜ Real use case: denial analysis or free-text eligibility parser
+31. ⬜ Azure DevOps pipeline hooks
+32. ⬜ n8n — build AI-powered workflows with no/low code
+
+### Phase D — Claude Certified Architect (items 33–35)
+*Goal: differentiator cert after AWS certs are done; builds on everything above*
+
+33. ⬜ Claude Extended Thinking — built-in chain-of-thought vs prompt-level CoT; when to use each
+34. ⬜ Claude Agent SDK — Anthropic's official SDK vs raw boto3/Bedrock; agent loop patterns
+35. ⬜ Evaluation specific to Claude — LLM-as-judge using Claude to evaluate Claude outputs at scale
 
 **LangGraph (added to item 10):**
 LangChain's framework for building stateful, cyclical agent workflows as graphs. Where LangChain handles single-pass chains, LangGraph handles loops — agents that reason, act, check results, and loop back. Think of it as the code-level equivalent of Step Functions but for agent logic specifically. Pairs naturally with LangChain — learn both together.
