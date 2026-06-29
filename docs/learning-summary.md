@@ -1835,6 +1835,111 @@ Charts saved: `overfit_curve.png`, `roc_curve.png`, `kmeans.png`
 
 ---
 
+## Session 13 — June 29, 2026
+
+### Deep Learning & Neural Networks
+
+---
+
+**Why neural networks exist — the XOR problem**
+
+Logistic regression is a single linear classifier. A single straight line through feature space cannot separate XOR inputs — it achieves only 50% accuracy (random). You need a non-linear decision boundary. Adding hidden layers creates that non-linearity.
+
+The two-layer net (Input→Hidden→Output) with ReLU activations solves XOR at 100%: the hidden layer first transforms the input space so that XOR becomes linearly separable, then the output layer draws the separating hyperplane.
+
+---
+
+**The three operations in every training step**
+
+**Forward pass:** input flows layer by layer to produce a prediction.
+```
+Z = X · W + b       ← linear combination (dot product of inputs and weights)
+A = activation(Z)   ← apply non-linearity (ReLU for hidden, sigmoid for output)
+```
+
+**Loss calculation:** measure how wrong the prediction is with a single scalar.
+```
+Binary cross-entropy: L = -[y·log(ŷ) + (1-y)·log(1-ŷ)]
+Penalizes confident wrong answers heavily on a log scale.
+```
+
+**Backward pass (backpropagation):** apply the chain rule backwards through all layers to compute how much each weight contributed to the error.
+```
+dL/dW2 = A1ᵀ · dZ2            ← output layer gradient
+dL/dW1 = Xᵀ · (dZ2·W2ᵀ * ReLU'(Z1))   ← hidden layer gradient (chain rule through ReLU)
+W ← W − lr · dL/dW             ← gradient descent update
+```
+
+The ReLU derivative is 0 or 1 — it zeroes out the gradient for neurons that were inactive during that forward pass ("dead neurons"). This is why weight initialization matters: all-zero weights cause all neurons to be identical and learn the same thing.
+
+---
+
+**Activation functions**
+
+| Function | Formula | When to use |
+|----------|---------|-------------|
+| ReLU | max(0, z) | Hidden layers — avoids vanishing gradient |
+| Sigmoid | 1/(1+e^-z) | Binary output — squashes to (0,1) |
+| Softmax | eᶻᵢ / Σeᶻⱼ | Multi-class output — probs sum to 1 |
+| Tanh | (e^z−e^-z)/(e^z+e^-z) | RNNs — centered at 0, range (−1,1) |
+
+---
+
+**Optimizers**
+
+**Vanilla SGD:** one global learning rate. Simple but slow — sensitive to bad learning rate choice.
+
+**Adam:** maintains a running average of past gradients (momentum) and adapts the learning rate per parameter. Almost always outperforms vanilla SGD in practice. Default choice for neural nets.
+
+---
+
+**sklearn MLPClassifier on claims data**
+
+- Architecture: Input(10) → Dense(64, ReLU) → Dense(32, ReLU) → Output
+- Adam optimizer, early stopping with patience=15, feature scaling mandatory
+- Test AUC: 0.564 vs Random Forest AUC: 0.971
+- Random Forest wins — expected on small tabular data (1,000 rows)
+- Key lesson: neural nets need scale (data volume, parameter count) to outperform tree ensembles on tabular data. For this dataset, the MLP has more parameters than samples — it simply doesn't have enough signal to learn.
+
+---
+
+**Feature scaling is mandatory for neural networks**
+
+Neural nets use gradient descent. If feature A ranges 0–10,000 and feature B ranges 0–1, the gradient for weight_A will be ~10,000× larger than for weight_B. The optimizer overshoots for large-scale features and barely moves for small-scale ones. StandardScaler (mean=0, std=1) before training is non-negotiable.
+
+Tree methods don't need scaling — splits are based on rank order, not magnitude.
+
+---
+
+**Self-attention mechanism — the core of transformers**
+
+Every token in the sequence produces three learned projections:
+- **Query (Q):** what information am I looking for?
+- **Key (K):** what information do I contain?
+- **Value (V):** what do I output if someone attends to me?
+
+```
+Attention(Q, K, V) = softmax( Q·Kᵀ / √d ) · V
+```
+
+- `Q·Kᵀ` produces a raw score matrix: how relevant is token j to token i?
+- `/ √d` (√embedding_dim) scales scores down — prevents exploding softmax when d is large
+- `softmax` normalizes each row to a probability distribution (rows sum to 1)
+- `· V` computes a weighted blend of all value vectors — each token's output mixes in the context from all other tokens
+
+Stacking 96 transformer blocks with attention between them = GPT-3. The scale is the architecture — the math is the same as this demo.
+
+---
+
+**What we built**
+
+- Numpy neural net from scratch: Input(2)→Hidden(8, ReLU)→Output(1, Sigmoid), 10,000 epochs, loss=0.0002, accuracy=100% on XOR
+- sklearn MLPClassifier: Input(10)→Dense(64)→Dense(32)→Output, Adam, early stopping
+- Self-attention mechanism: Q/K/V projections, score matrix, softmax, weighted value blend
+- Charts: `decision_boundary.png`, `loss_curve.png`, `mlp_training.png`, `attention_heatmap.png`
+
+---
+
 ## Learning Curriculum (in order)
 
 ### Phase A — AWS AI Practitioner cert + GenAI core (items 1–20)
@@ -1853,11 +1958,10 @@ Charts saved: `overfit_curve.png`, `roc_curve.png`, `kmeans.png`
 10. ✅ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ✅ Step Functions for multi-step workflows
 12. ✅ Classical ML fundamentals — supervised / unsupervised / reinforcement learning; common algorithms (linear regression, decision trees, k-means, neural networks); evaluation metrics (accuracy, precision, recall, F1, AUC-ROC, RMSE); overfitting vs underfitting; bias-variance tradeoff
+13. ✅ Deep learning & neural networks — forward pass, backpropagation, gradient descent, activation functions (ReLU/sigmoid/softmax), loss functions, Adam optimizer, feature scaling, MLPClassifier, self-attention mechanism (Q/K/V, softmax(QKᵀ/√d)·V), transformer architecture conceptual
 
 #### AIF-C01 Exam Prep — complete by July 9 (exam July 10)
-13. ⬜ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
-13. ⬜ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
-14. ⬜ Transformer architecture + embeddings basics — attention mechanism concept, tokenization, context window limits, how embeddings capture semantic meaning (conceptual only, no math)
+14. ⬜ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
 15. ⬜ Responsible AI — AWS's 8 dimensions (fairness, explainability, privacy, robustness, safety, controllability, veracity, governance); bias types (data bias, algorithmic bias, measurement bias); model cards; SHAP / LIME concepts
 16. ⬜ ML governance + security for AI — AWS KMS for encryption, VPC endpoints for Bedrock, AWS Audit Manager, model versioning and reproducibility, AWS Well-Architected Framework for ML (6 pillars applied to AI)
 
