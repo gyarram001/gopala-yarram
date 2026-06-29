@@ -28,6 +28,7 @@ JSON output, `temperature=0.0`, and a PHI-safe pre-commit pipeline.
 | [`mcp-server/`](mcp-server/) | MCP server with 2 tools + Lambda client demo | Bedrock, DynamoDB | Advanced |
 | [`langchain-demo/`](langchain-demo/) | LangChain abstractions over raw Bedrock — chain, prompt template, output parser | Bedrock | Intermediate |
 | [`langgraph-demo/`](langgraph-demo/) | LangGraph stateful agent workflows — agentic loop, HITL, branching, persistence | Bedrock | Advanced |
+| [`ml-fundamentals/`](ml-fundamentals/) | Classical ML: supervised/unsupervised, metrics, overfitting, bias-variance — AIF-C01 prep | None (sklearn only) | Beginner |
 | [`hooks/`](hooks/) | Pre-commit: PHI scanner, commit enforcer, AI code review | Bedrock | Tooling |
 
 ---

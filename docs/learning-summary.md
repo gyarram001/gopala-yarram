@@ -1706,12 +1706,141 @@ The AI code review hook (built in Session 8) found real security issues across 8
 
 ---
 
+---
+
+---
+
+## Session 12 — June 28, 2026
+
+### Classical ML Fundamentals
+
+---
+
+**The three learning paradigms**
+
+**Supervised learning** — you provide labeled historical data `(X, y)`. The model learns to map input features → correct output. Requires labels you already know (e.g. past claims with denial outcomes). Used for: logistic regression, decision trees, random forests, neural networks.
+
+**Unsupervised learning** — no labels. Only raw input `X`. The model finds structure in the data itself: clusters, patterns, anomalies. Used for: k-means clustering, member segmentation.
+
+**Reinforcement learning** — agent learns by taking actions and receiving rewards or penalties. No dataset. Rarely tested on AIF-C01 beyond knowing what it is.
+
+---
+
+**Common algorithms**
+
+**Logistic regression** — fits a line (hyperplane) through feature space to separate classes. Outputs a probability (0–1) via sigmoid function. Despite the name, it classifies — output is a category, not a number. Learns which side of the line each class falls on.
+
+**Decision tree** — learns a series of if/else splits on features. Each split maximizes purity (reduces how mixed the labels are at each node). Intuitive and auditable. Grows too deep → memorizes training data (overfits).
+
+**Random forest** — trains 100+ decision trees, each on a random subset of data and features. Final prediction = majority vote. Averaging many high-variance trees reduces variance without increasing bias. Better than any single tree. Bonus: outputs feature importance scores.
+
+**k-Means** — unsupervised. Place k centroids, assign each point to nearest centroid, move centroids to mean of assigned points, repeat until stable. You choose k in advance. Use the elbow method to pick k (plot inertia vs k values, look for the bend).
+
+**Linear regression** — supervised, continuous output (a number). Fits a line minimizing average squared error between predictions and true values. Output is a dollar amount, count, or any continuous value — not a category.
+
+**Neural networks** — layers of weighted connections. Forward pass: input flows through layers to produce a prediction. Backward pass (backpropagation): error propagates back to update weights via gradient descent. LLMs are an extreme version of this. Not tested in depth on AIF-C01.
+
+---
+
+**Evaluation metrics — the full map**
+
+Start with the confusion matrix:
+
+```
+                     Predicted Positive   Predicted Negative
+Actual Positive           TP                    FN
+Actual Negative           FP                    TN
+```
+
+**Classification:**
+- **Accuracy** = (TP+TN)/total. Misleading on imbalanced data. A model predicting "never denied" on 94% not-denied data hits 94% accuracy while being useless.
+- **Precision** = TP/(TP+FP). Of what you flagged, how many were real. Use when false positives are costly (wasted prior auth effort).
+- **Recall** = TP/(TP+FN). Of all actual positives, how many you caught. Use when false negatives are costly (missed denial = uncollected revenue).
+- **F1** = harmonic mean of precision and recall. Use when both matter and classes are imbalanced.
+- **AUC-ROC** = area under the ROC curve. Threshold-independent. AUC=0.5 → random, AUC=1.0 → perfect. Use when comparing models across all thresholds.
+
+**Regression (continuous output):**
+- **RMSE** = root mean squared error. Same units as output. Penalizes large errors heavily (squared). Use when big errors are especially costly.
+- **MAE** = mean absolute error. Average of absolute errors. More robust to outliers than RMSE. Use when all errors matter equally.
+
+---
+
+**Overfitting vs underfitting**
+
+**Underfitting (high bias):** model too simple. Poor on both training and test data. The model hasn't learned enough.
+
+**Overfitting (high variance):** model memorized training data including noise. Near-perfect on training, poor on test. The training-vs-test gap IS the overfit signal.
+
+Diagnostic: compare training accuracy to test accuracy.
+- No gap, both poor → underfitting
+- Training great, test poor → overfitting
+- Both good → well-fitted model
+
+**Fixes for overfitting:** limit tree depth, regularization (L1/L2), more training data, dropout (neural nets), early stopping.
+
+**Fixes for underfitting:** more complex model, more features, train longer.
+
+**Proved with real numbers from the demo:**
+```
+Unlimited tree: Training=1.000, Test=0.900  ← gap of 0.10 = overfitting
+Depth-5 tree:   Training=0.940, Test=0.820  ← smaller gap
+Random forest:  Training=1.000, Test=0.945  AUC=0.971  ← best overall
+```
+
+---
+
+**Bias-variance tradeoff**
+
+Total prediction error = Bias² + Variance + Irreducible Noise
+
+- **Bias** = systematic error. How wrong the model is on average. High-bias models underfit.
+- **Variance** = sensitivity to training data. Retrain on a slightly different subset → predictions change a lot. High-variance models overfit.
+
+You cannot eliminate both with a fixed amount of data. More complexity → less bias, more variance. Less complexity → more variance, less bias. Goal: the complexity level where Bias² + Variance is minimized.
+
+Random forests reduce variance by averaging many high-variance trees. That's the entire point of ensemble methods.
+
+Cross-validation measures variance directly: train and evaluate 5 times on different data subsets. High standard deviation across folds = high variance = the model is unstable.
+
+---
+
+**Train / validation / test split — the rules**
+
+Three-way split: 60% train, 20% validation, 20% test.
+
+- Training set: model learns from this. Use it freely.
+- Validation set: tune hyperparameters here. Look at it as many times as needed.
+- Test set: touch exactly once for final honest evaluation. Every peek leaks information.
+
+`stratify=y` on the split ensures the minority class (denials) stays at the same ratio in all three splits. Without it, you could randomly get a test set with zero denials.
+
+**Cross-validation** (when data is scarce): split training into 5 folds, train on 4, validate on 1, rotate until every fold has been the validation set once. Average the 5 scores. No static validation set needed. Test set still stays locked.
+
+---
+
+**Demo built — `ml-fundamentals/classical_ml_demo.py`**
+
+Ran end-to-end on synthetic claim denial data (1,000 claims, 6.4% denial rate):
+
+- Logistic regression with `class_weight="balanced"` to handle imbalance: Precision=0.16, Recall=0.69, F1=0.26, AUC=0.80
+- Decision tree unlimited depth: train accuracy 1.00, test 0.90 → overfit proved
+- Decision tree depth=5: gap shrinks, overfitting reduced
+- Random forest 100 trees: AUC=0.971, best F1 of all models
+- ROC curve: both classifiers plotted, random forest bows much further toward top-left
+- k-Means: 3 member clusters found with no labels; elbow plot confirms k=3
+- Linear regression: RMSE=51.56, MAE=42.02 on continuous output
+- Bias-variance via 5-fold CV: unlimited tree std=0.179 (unstable), logistic reg std=0.059 (stable)
+
+Charts saved: `overfit_curve.png`, `roc_curve.png`, `kmeans.png`
+
+---
+
 ## Learning Curriculum (in order)
 
 ### Phase A — AWS AI Practitioner cert + GenAI core (items 1–20)
 *Goal: cert by July 10 + foundational GenAI engineering skills*
 
-#### Completed (Sessions 1–11)
+#### Completed (Sessions 1–12)
 1. ✅ LLM vs Model vs Agent
 2. ✅ Bedrock + first API call
 3. ✅ When to use AI vs code
@@ -1723,9 +1852,10 @@ The AI code review hook (built in Session 8) found real security issues across 8
 9. ✅ MCP (Model Context Protocol) — building and connecting MCP servers
 10. ✅ LangChain + LangGraph (LangChain for abstractions, LangGraph for stateful agent workflows)
 11. ✅ Step Functions for multi-step workflows
+12. ✅ Classical ML fundamentals — supervised / unsupervised / reinforcement learning; common algorithms (linear regression, decision trees, k-means, neural networks); evaluation metrics (accuracy, precision, recall, F1, AUC-ROC, RMSE); overfitting vs underfitting; bias-variance tradeoff
 
 #### AIF-C01 Exam Prep — complete by July 9 (exam July 10)
-12. ⬜ Classical ML fundamentals — supervised / unsupervised / reinforcement learning; common algorithms (linear regression, decision trees, k-means, neural networks); evaluation metrics (accuracy, precision, recall, F1, AUC-ROC, RMSE); overfitting vs underfitting; bias-variance tradeoff
+13. ⬜ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
 13. ⬜ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
 14. ⬜ Transformer architecture + embeddings basics — attention mechanism concept, tokenization, context window limits, how embeddings capture semantic meaning (conceptual only, no math)
 15. ⬜ Responsible AI — AWS's 8 dimensions (fairness, explainability, privacy, robustness, safety, controllability, veracity, governance); bias types (data bias, algorithmic bias, measurement bias); model cards; SHAP / LIME concepts
