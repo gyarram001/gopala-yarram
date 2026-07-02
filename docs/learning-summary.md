@@ -1,5 +1,5 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** June 26, 2026
+**Started:** June 14, 2026 | **Last Updated:** July 2, 2026
 
 ---
 
@@ -1937,6 +1937,83 @@ Stacking 96 transformer blocks with attention between them = GPT-3. The scale is
 - sklearn MLPClassifier: Input(10)→Dense(64)→Dense(32)→Output, Adam, early stopping
 - Self-attention mechanism: Q/K/V projections, score matrix, softmax, weighted value blend
 - Charts: `decision_boundary.png`, `loss_curve.png`, `mlp_training.png`, `attention_heatmap.png`
+
+---
+
+## Session 14 — July 2, 2026
+
+### AWS AI Service Portfolio — When to Use Each Service vs Bedrock
+
+---
+
+**The core exam rule**
+
+Use purpose-built AI services for narrow, well-defined tasks. Use Bedrock when the task requires reasoning, generation, or doesn't fit a pre-built service.
+
+| Use purpose-built services when | Use Bedrock when |
+|---|---|
+| Task is narrow and well-defined | Task requires reasoning or judgment |
+| Output is structured (sentiment, entities, transcription) | Output is generative (text, summaries, answers) |
+| Low latency / high volume / low cost needed | No pre-built service fits the task |
+| No prompt engineering needed | You need to customize behavior via prompting |
+
+---
+
+**Service reference — when to use each**
+
+**Rekognition** — image and video analysis: object detection, facial recognition, content moderation, label detection. Use when the input is visual media and the output is structured labels or bounding boxes.
+
+**Comprehend** — NLP on text: sentiment analysis (positive/negative/neutral/mixed), entity extraction, key phrase detection, language detection, topic modeling. Use for any well-defined NLP classification or extraction task.
+
+**Comprehend Medical** — same as Comprehend but healthcare-specific: extracts medications, dosages, conditions, anatomy, and medical entities from clinical text. Often used after Textract in a document pipeline.
+
+**Textract** — extract text and structure from scanned documents and PDFs: OCR, tables, forms, key-value pairs. Use when the input is a scanned or photographed document and you need the text layer extracted.
+
+**Transcribe** — speech-to-text. Converts audio to text. Used as the input layer for voice applications before sending to Lex or other services.
+
+**Polly** — text-to-speech. Converts text to natural-sounding audio. Used as the output layer in voice applications.
+
+**Kendra** — enterprise search over internal documents. Handles natural language queries across S3, SharePoint, and other document sources with minimal custom build. Use when employees need to search internal knowledge bases.
+
+**Personalize** — recommendation systems. Ingests user interaction history (clicks, purchases, views) and trains recommendation models. Use for "customers who bought this also bought…" style features.
+
+**Forecast** — time-series prediction. Use for predicting future numerical values: demand forecasting, inventory levels, capacity planning. Not recommendations — predictions over time.
+
+**Lex** — conversational chatbots. Handles intent recognition and conversation flow. Same technology as Alexa. Often combined with Kendra (document retrieval) or Transcribe/Polly (voice).
+
+**Translate** — real-time language translation between languages. Use for multilingual content pipelines.
+
+---
+
+**Common service combinations**
+
+| Pipeline | Services |
+|---|---|
+| Voice chatbot | Transcribe → Lex → Polly |
+| Enterprise Q&A chatbot | Lex + Kendra |
+| Medical document pipeline | Textract → Comprehend Medical |
+| Generative Q&A over documents | Bedrock + RAG (vs Kendra for retrieval-only) |
+
+---
+
+**Kendra vs Bedrock+RAG**
+
+Kendra returns the source document/passage directly. Bedrock+RAG generates a synthesized answer from retrieved context. Use Kendra when you need precise retrieval and citations; use Bedrock+RAG when you need a conversational, generated answer.
+
+---
+
+**Personalize vs Forecast (exam trap)**
+
+- Personalize = who should see what (user-item recommendations)
+- Forecast = what will happen when (time-series numerical prediction)
+
+---
+
+**Key takeaways**
+- Textract extracts structure from documents; Comprehend/Comprehend Medical interprets the extracted text
+- Lex alone cannot search documents — pair with Kendra for knowledge retrieval
+- Transcribe + Lex + Polly = full voice pipeline
+- Bedrock is the right answer only when no purpose-built service fits
 
 ---
 
