@@ -1,5 +1,5 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** July 2, 2026
+**Started:** June 14, 2026 | **Last Updated:** July 7, 2026
 
 ---
 
@@ -2017,12 +2017,70 @@ Kendra returns the source document/passage directly. Bedrock+RAG generates a syn
 
 ---
 
+## Session 15 — July 7, 2026
+
+### Responsible AI — Bias Audit, SHAP, LIME, Model Cards
+
+---
+
+**AWS's 8 responsible AI dimensions (AIF-C01)**
+
+Fairness, explainability, privacy & security, robustness, safety, controllability, veracity & truthfulness, governance. Bias audit + SHAP/LIME together demonstrate two of these directly: fairness (does the model treat groups equitably) and explainability (can you say why it made a decision).
+
+**Bias types:**
+- **Data bias** — the training labels themselves encode historical disadvantage (majority group approved more often in the source data, independent of anything the model does)
+- **Algorithmic bias** — the model amplifies or introduces disparity beyond what's in the data
+- **Measurement bias** — features are measured or defined differently across groups
+
+---
+
+**Demo built — `ml-fundamentals/responsible_ai_demo.py`**
+
+Synthetic loan-approval dataset (2,000 applicants, 70/30 group split, group intentionally excluded as a feature) run end-to-end. Installed `shap` + `lime` in the sandbox and executed the script directly to capture real output rather than relying on the pre-existing PNGs:
+
+```
+Group 0 (majority) approval rate in training data: 76.5%
+Group 1 (minority) approval rate in training data: 46.9%   ← data bias baked in
+
+Random Forest (n_estimators=100), test set:
+Overall accuracy:   0.908
+Accuracy — Group 0: 0.909
+Accuracy — Group 1: 0.907
+Accuracy gap:       0.002  → fairness_flag: False (below 5% threshold)
+```
+
+**The finding worth sitting with:** a 30-point gap in training-data approval rates produced only a 0.2-point gap in model accuracy between groups. The bias-audit check in this script (accuracy parity) says "no significant gap" — technically true, and also missing the point. The model learned the biased pattern equally well for both groups, so it's *equally accurate* at reproducing a *disparate outcome*. Accuracy parity is not the same fairness metric as demographic parity (equal approval rates) or equal opportunity (equal true-positive rates) — this dataset would fail the second two while passing the first. This is the AIF-C01 trap: "no accuracy gap" ≠ "no bias."
+
+**SHAP (global + local, TreeExplainer):**
+```
+credit_score       0.2582  ███████████████████████████████████████████████████
+debt_ratio         0.0680  █████████████
+employment_years   0.0250  █████
+loan_amount        0.0196  ███
+income             0.0173  ███
+```
+`credit_score` dominates the decision — and since group membership correlates with credit_score in the synthetic data (by construction), this is the likely proxy-variable channel for bias, even though `group` was never a feature.
+
+**LIME (local surrogate, one applicant):**
+```
+Model prediction probability: Approved=0.100
+▼ credit_score <= 622.48              weight=-0.6819
+▼ debt_ratio > 0.39                   weight=-0.1571
+```
+SHAP and LIME agree on the top feature for this applicant — SHAP computes exact Shapley values from tree structure (global + local), LIME perturbs the input and fits a local linear model (local only, and known to be unstable run-to-run).
+
+**Model card** — structured dict covering intended use, out-of-scope uses, training data provenance, per-group performance, known limitations, and governance/ownership. Matches the SageMaker Model Cards structure from item 16 (ML governance) — this demo builds the content, that item covers the AWS-managed tooling around it.
+
+---
+
+---
+
 ## Learning Curriculum (in order)
 
 ### Phase A — AWS AI Practitioner cert + GenAI core (items 1–20)
 *Goal: cert by July 10 + foundational GenAI engineering skills*
 
-#### Completed (Sessions 1–12)
+#### Completed (Sessions 1–15)
 1. ✅ LLM vs Model vs Agent
 2. ✅ Bedrock + first API call
 3. ✅ When to use AI vs code
@@ -2038,8 +2096,8 @@ Kendra returns the source document/passage directly. Bedrock+RAG generates a syn
 13. ✅ Deep learning & neural networks — forward pass, backpropagation, gradient descent, activation functions (ReLU/sigmoid/softmax), loss functions, Adam optimizer, feature scaling, MLPClassifier, self-attention mechanism (Q/K/V, softmax(QKᵀ/√d)·V), transformer architecture conceptual
 
 #### AIF-C01 Exam Prep — complete by July 9 (exam July 10)
-14. ⬜ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
-15. ⬜ Responsible AI — AWS's 8 dimensions (fairness, explainability, privacy, robustness, safety, controllability, veracity, governance); bias types (data bias, algorithmic bias, measurement bias); model cards; SHAP / LIME concepts
+14. ✅ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
+15. ✅ Responsible AI — AWS's 8 dimensions (fairness, explainability, privacy, robustness, safety, controllability, veracity, governance); bias types (data bias, algorithmic bias, measurement bias); model cards; SHAP / LIME concepts (code built, not yet committed — see Session 15 housekeeping note)
 16. ⬜ ML governance + security for AI — AWS KMS for encryption, VPC endpoints for Bedrock, AWS Audit Manager, model versioning and reproducibility, AWS Well-Architected Framework for ML (6 pillars applied to AI)
 
 #### After exam — GenAI engineering depth
