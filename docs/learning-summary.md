@@ -1,5 +1,83 @@
 # AI Learning Summary
-**Started:** June 14, 2026 | **Last Updated:** July 7, 2026
+**Started:** June 14, 2026 | **Last Updated:** July 17, 2026 | **AIP-C01 target:** Sept 25, 2026
+
+---
+
+## Certifications
+
+| Certification | Status | Date | Exam Code |
+|---|---|---|---|
+| AWS Certified AI Practitioner | ✅ Passed | July 17, 2026 | AIF-C01 |
+| AWS Certified Generative AI Developer – Professional | ⬜ Target | **Sept 25, 2026 — HARD DEADLINE** | AIP-C01 |
+
+---
+
+## Next Certification: AWS Certified Generative AI Developer – Professional (AIP-C01)
+**Exam date: September 25, 2026 — HARD DEADLINE (10 weeks from July 17)**
+
+**Why this cert:** This is the natural progression from AI Practitioner. It validates you can actually build and deploy production GenAI systems on AWS — not just understand the concepts. Directly relevant to every Bedrock agent project in this repo.
+
+**Exam facts:**
+- 65 scored questions + 10 unscored, 170 minutes
+- Passing score: 750/1000 (scaled)
+- Valid for 3 years
+- Recommended experience: 2+ years cloud, comfortable with Bedrock APIs
+
+**Content domains:**
+
+| Domain | Weight | Your current readiness |
+|---|---|---|
+| 1. FM Integration, Data Management & Compliance | 31% | Partial — Bedrock done, RAG/vector search pending |
+| 2. Implementation & Integration | 26% | Partial — agents done, Step Functions + LangChain pending |
+| 3. AI Safety, Security & Governance | 20% | Partial — HIPAA context covered, formal governance pending |
+| 4. Operational Efficiency & Optimization | 12% | Partial — cost architecture covered, observability pending |
+| 5. Testing, Validation & Troubleshooting | 11% | Pending — FM eval metrics + hallucination mitigation pending |
+
+**What maps directly from this repo's curriculum:**
+- Domain 1 → Bedrock Agents (item 17), embeddings + vector search (item 18), advanced RAG (item 19), multi-source RAG (item 20), Bedrock KBs (item 22), hybrid search (item 23)
+- Domain 2 → Agentic loop demos (item 6), Step Functions (item 11), LangChain/LangGraph (item 10), Bedrock API deep dive (item 27), fine-tuning (item 30), Bedrock AgentCore (item 33)
+- Domain 3 → Responsible AI session (item 15), PHI hooks, Bedrock Guardrails (item 34), security + governance (items 35–36)
+- Domain 4 → Cost optimization (item 37), observability (item 38), SageMaker (item 39)
+- Domain 5 → FM evaluation metrics / RAGAS (item 40), hallucination mitigation (item 41), error handling (item 42)
+
+**Study resources:**
+- [Official exam guide (AIP-C01)](https://docs.aws.amazon.com/aws-certification/latest/examguides/ai-professional-01.html)
+- [AWS Certified Generative AI Developer – Professional page](https://aws.amazon.com/certification/certified-generative-ai-developer-professional/)
+- [Tutorials Dojo practice exams](https://portal.tutorialsdojo.com/courses/aws-certified-generative-ai-developer-professional-aip-c01-practice-exams/)
+
+---
+
+## AIP-C01 Study Schedule — Sept 25, 2026 Deadline
+
+**10-week plan.** 27 learning items (16–42) across 7 learning weeks + 2 practice exam weeks + 1 final week. Assumes 75–90 min weekday blocks (5 sessions/week) — the cadence established during AIF-C01 prep.
+
+> **Rule:** If a week slips, do NOT skip items — compress the next week. Domain 1 (31%) is the top priority; never sacrifice items 17–26.
+
+| Week | Dates | Items | Domain focus | Goal |
+|---|---|---|---|---|
+| **1** | Jul 18–24 | 16, 17, 18 | D1 + D3 foundation | ML governance, Bedrock Agents, embeddings + vector search |
+| **2** | Jul 25–31 | 19, 20, 21 | D1 | Advanced RAG, multi-source RAG, FM selection from catalog |
+| **3** | Aug 1–7 | 22, 23, 24, 25 | D1 | Bedrock KBs, hybrid search, source attribution, cross-region |
+| **4** | Aug 8–14 | 26, 27, 28, 29 | D1 + D2 | Data governance, Bedrock API, streaming, structured outputs |
+| **5** | Aug 15–21 | 30, 31, 32, 33 | D2 | Fine-tuning, multi-modal, Amazon Q Developer, AgentCore |
+| **6** | Aug 22–28 | 34, 35, 36, 37 | D3 + D4 | Guardrails, security, governance, cost optimization |
+| **7** | Aug 29–Sep 4 | 38, 39, 40, 41, 42 | D4 + D5 | Observability, SageMaker, FM eval, hallucination, error handling |
+| **8** | Sep 5–11 | — | All domains | **Practice exam week 1** — 2–3 Tutorials Dojo full runs; score by domain; identify bottom 2 domains |
+| **9** | Sep 12–18 | — | Weak domains | **Practice exam week 2** — full timed simulation + deep review of weakest domains; target 800+ on practice |
+| **10** | Sep 19–25 | — | Light review | Sep 19–23: flashcards + concept review only. Sep 24: rest. **Sep 25: EXAM** |
+
+**Weekly session structure (75–90 min):**
+- Days 1–2: Study + notes (concept deep dive)
+- Day 3: Build a demo that exercises the concept — commit it
+- Day 4: Review + connect to prior items
+- Day 5: Write 5 exam-style Q&As for the week's topics in this doc
+
+**Domain 1 is 31% of the exam — the single highest-leverage area.** Weeks 1–4 are weighted toward it intentionally. If behind, protect weeks 1–4 before anything else.
+
+**Red flags to watch for:**
+- Finishing Week 3 with items 19–21 incomplete → compress week 4 or drop item 25 (cross-region, lower exam weight)
+- Practice exam score below 650 after Week 8 → cancel exam, reschedule; don't sit with insufficient prep
+- Missing two or more consecutive weekday sessions → adjust plan the same week, not next week
 
 ---
 
@@ -2075,6 +2153,46 @@ SHAP and LIME agree on the top feature for this applicant — SHAP computes exac
 
 ---
 
+## Weekly Review — July 10, 2026
+
+### Commits this week (July 3–10)
+
+**July 7 — Responsible AI (Session 15)**
+- `FEAT: add responsible AI demo — Session 15` — `ml-fundamentals/responsible_ai_demo.py` (408 lines) plus 4 generated charts (`bias_audit.png`, `shap_summary.png`, `shap_waterfall.png`, `lime_explanation.png`)
+- `DOCS: update learning summary — Session 15 Responsible AI` — curriculum + session notes
+- Only 2 commits this week — lighter week, single session (Responsible AI: bias audit, SHAP, LIME, model cards)
+
+### Curriculum items marked ✅ this week
+- Item 15: Responsible AI (confirmed complete — code committed, previously flagged as pending)
+
+### Still open
+- Item 16 (ML governance + security for AI) was targeted for July 9, still ⬜ with the AIF-C01 exam today (July 10)
+
+---
+
+---
+
+## Weekly Review — July 17, 2026
+
+### Commits this week (July 11–17)
+No commits in `amazon-bedrock-demos` since the July 7 Session 15 commit (`7d1f1c2`). First week with zero new activity — repo is still sitting at Session 15 / Phase A, item 16.
+
+### Curriculum items marked ✅ this week
+- AIF-C01 (AWS Certified AI Practitioner) — **PASSED July 17, 2026** ✅
+
+### AIP-C01 deadline set
+- **September 25, 2026** — hard deadline for AWS Certified Generative AI Developer – Professional (AIP-C01)
+- 10 weeks from today. Week 1 starts July 18 with item 16 (ML governance, overdue from AIF-C01 prep)
+- Study plan added to the Next Certification section above
+
+### Still open
+- Item 16 (ML governance + security for AI) — was targeted for July 9, still ⬜. Now the first item of Week 1 of AIP-C01 prep. Must start July 18.
+- Post-exam break (July 10–17) is accounted for in the plan — Week 1 begins fresh July 18.
+
+---
+
+---
+
 ## Learning Curriculum (in order)
 
 ### Phase A — AWS AI Practitioner cert + GenAI core (items 1–20)
@@ -2097,8 +2215,8 @@ SHAP and LIME agree on the top feature for this applicant — SHAP computes exac
 
 #### AIF-C01 Exam Prep — complete by July 9 (exam July 10)
 14. ✅ AWS AI service portfolio — scenario-based: when to use Rekognition (image/video), Comprehend (NLP/sentiment), Textract (document extraction), Transcribe (speech-to-text), Polly (text-to-speech), Kendra (enterprise search), Personalize (recommendations), Forecast (time-series), Lex (chatbots), Translate — vs when to use Bedrock
-15. ✅ Responsible AI — AWS's 8 dimensions (fairness, explainability, privacy, robustness, safety, controllability, veracity, governance); bias types (data bias, algorithmic bias, measurement bias); model cards; SHAP / LIME concepts (code built, not yet committed — see Session 15 housekeeping note)
-16. ⬜ ML governance + security for AI — AWS KMS for encryption, VPC endpoints for Bedrock, AWS Audit Manager, model versioning and reproducibility, AWS Well-Architected Framework for ML (6 pillars applied to AI)
+15. ✅ Responsible AI — AWS's 8 dimensions (fairness, explainability, privacy, robustness, safety, controllability, veracity, governance); bias types (data bias, algorithmic bias, measurement bias); model cards; SHAP / LIME concepts (committed July 7 — `responsible_ai_demo.py`)
+16. ⬜ ML governance + security for AI — AWS KMS for encryption, VPC endpoints for Bedrock, AWS Audit Manager, model versioning and reproducibility, AWS Well-Architected Framework for ML (6 pillars applied to AI) — **was slated for July 9, still open on exam day (July 10)**
 
 #### After exam — GenAI engineering depth
 17. ⬜ Bedrock Agents (managed service vs DIY)
@@ -2106,54 +2224,79 @@ SHAP and LIME agree on the top feature for this applicant — SHAP computes exac
 19. ⬜ Advanced RAG patterns — query rewriting, HyDE, re-ranking, RAGAS evaluation
 20. ⬜ Multi-source RAG — retrieving from multiple knowledge bases in one query
 
-### Phase B — AWS GenAI Developer Professional cert (items 21–27)
-*Goal: RAG architectures, Bedrock Agents, vector DBs, foundation model selection, advanced GenAI patterns*
+### Phase B — AIP-C01 GenAI Developer Professional cert (items 21–42)
+*Goal: build and deploy production GenAI systems on AWS — earn the AIP-C01 cert*
+*Note: items 17–20 (Bedrock Agents, embeddings, advanced RAG, multi-source RAG) are prerequisites already queued in Phase A and map to Domain 1 below*
 
-21. ⬜ SageMaker fundamentals — training jobs, pipelines, endpoints, model registry
-22. ⬜ Structured outputs / JSON schema enforcement
-23. ⬜ Multi-modal — images + text with Claude Vision
-24. ⬜ Streaming responses
-25. ⬜ Fine-tuning vs prompting — when to use which
-26. ⬜ Cost architecture — model selection strategy (Haiku vs Sonnet), semantic caching, Bedrock Batch API
-27. ⬜ AI governance + HIPAA compliance for AI systems
+#### Domain 1 — FM Integration, Data Management & Compliance (31% of exam)
 
-### Phase C — Production readiness + job search (items 28–37)
-*Goal: portfolio-quality projects + interview-ready on production AI topics*
+21. ⬜ FM selection & Bedrock model catalog — Claude 3.x, Meta Llama 3, Amazon Titan, Cohere Command, Mistral; compare by: context window, modality, latency, cost; on-demand vs provisioned throughput; scenario-based model selection for a given use case
+22. ⬜ Bedrock Knowledge Bases (managed RAG) — ingestion pipelines, chunking strategies (fixed-size, hierarchical, semantic), metadata filtering, sync vs batch ingestion, auto-sync from S3; contrast with DIY RAG built in item 18
+23. ⬜ Hybrid search — combining keyword (BM25) + semantic (vector) search; re-ranking with Cohere Rerank or Bedrock; when hybrid beats pure semantic retrieval
+24. ⬜ Source attribution & citation — surfacing which document chunks grounded a response; Bedrock KB citation fields; traceability requirements in regulated (healthcare/financial) outputs
+25. ⬜ Cross-region inference & multi-region architecture — inference profiles, latency tradeoffs, disaster recovery patterns for GenAI workloads; when cross-region adds value vs complexity
+26. ⬜ Data governance for GenAI — data residency requirements (GDPR, HIPAA), masking/tokenization before inference, data lineage, preventing PHI from entering prompts at the architecture level
 
-28. ⬜ Reliability (retries, idempotency, dead letter queues)
-29. ⬜ Security (prompt injection, PHI scrubbing)
-30. ⬜ Evaluation + testing agents
-31. ⬜ LLM-as-judge + prompt regression testing
-32. ⬜ Harness engineering — building systematic test frameworks for AI agent evaluation
-33. ⬜ Observability (tracing, cost monitoring) + data drift monitoring
-34. ⬜ AWS Comprehend Medical — healthcare entity extraction paired with Bedrock
-35. ⬜ Real use case: denial analysis or free-text eligibility parser
-36. ⬜ Azure DevOps pipeline hooks
-37. ⬜ n8n — build AI-powered workflows with no/low code
+#### Domain 2 — Implementation & Integration (26% of exam)
 
-### Phase D — Claude Certified Architect (items 38–40)
+27. ⬜ Bedrock API deep dive — InvokeModel vs Converse API; ConverseStream for streaming; token budget management; request/response structure; when to use each API surface
+28. ⬜ Streaming responses & progressive rendering — ConverseStream chunk processing, latency vs throughput tradeoffs, when not to stream (async Lambda / DLQ pipelines)
+29. ⬜ Structured outputs / JSON schema enforcement — constraining model output at the API level; downstream parsing guarantees; contrast with prompt-level JSON requests
+30. ⬜ Fine-tuning on Bedrock — continued pre-training vs instruction fine-tuning vs RLHF concepts; dataset preparation (JSONL format); when to fine-tune vs prompt engineer; cost and time implications
+31. ⬜ Multi-modal GenAI — images + text with Claude Vision and Amazon Titan Multimodal; base64 encoding images in API requests; healthcare imaging use cases
+32. ⬜ Amazon Q Developer — code generation, security scanning, unit test generation; Q in IDE (VS Code / JetBrains); Q Business vs Q Developer distinction; when it adds value over raw Bedrock
+33. ⬜ Bedrock AgentCore — managed agent runtime vs DIY agentic loop; sessions and conversation memory; action groups; knowledge base integration; contrast with raw Bedrock Agents API (item 17)
+
+#### Domain 3 — AI Safety, Security & Governance (20% of exam)
+
+34. ⬜ Bedrock Guardrails — content filters (hate, violence, sexual, misconduct), PII redaction (SSN, DOB, email, phone), grounding/groundedness checks (hallucination detection at infra level), topic deny lists, word filters; where guardrails sit in the request path
+35. ⬜ Security for Bedrock — IAM policy patterns for model access, VPC PrivateLink endpoints (no public internet traffic), KMS encryption for model customization artifacts, CloudTrail event types for Bedrock, prompt injection attack patterns (direct vs indirect) and defenses
+36. ⬜ ML governance + security for AI — AWS Audit Manager for AI workloads, model versioning and reproducibility, Well-Architected ML lens (6 pillars applied to GenAI), audit trail for every AI decision, BAA coverage verification *(combines item 16 from AIF-C01 prep + AIP-C01 governance depth)*
+
+#### Domain 4 — Operational Efficiency & Optimization (12% of exam)
+
+37. ⬜ Cost optimization for GenAI — provisioned throughput vs on-demand (break-even analysis), Bedrock Batch API for offline/async workloads, semantic caching (skip re-invocation for repeated inputs), prompt caching, token budgeting per agent tier (Haiku for simple steps, Sonnet for complex reasoning)
+38. ⬜ Observability for GenAI — CloudWatch metrics for Bedrock (InvocationCount, InvocationLatency, TokensProcessed, ThrottledRequests), X-Ray tracing through agent chains, cost-per-invocation dashboards, model output quality monitoring and drift detection over time
+39. ⬜ SageMaker fundamentals — training jobs, SageMaker Pipelines, real-time endpoints vs batch transform, model registry, JumpStart pre-trained models; when SageMaker is the right choice vs Bedrock
+
+#### Domain 5 — Testing, Validation & Troubleshooting (11% of exam)
+
+40. ⬜ FM evaluation metrics — BLEU, ROUGE, BERTScore (automated NLP metrics); RAGAS for RAG-specific evaluation (faithfulness, answer relevance, context precision, context recall); LLM-as-judge patterns; human-in-the-loop rubric design
+41. ⬜ Hallucination detection & mitigation — why LLMs hallucinate; grounding via retrieval (RAG); Bedrock Guardrails groundedness check; self-consistency prompting (sample multiple outputs, compare); factual verification steps in agent chains
+42. ⬜ Error handling & reliability for LLM apps — retries with exponential backoff and jitter, circuit breaker pattern for dependent model calls, fallback model strategy (Haiku when Sonnet throttles), token limit errors (detect + truncate + retry), DLQ patterns for async agent pipelines, idempotency keys for Lambda handlers
+
+### Phase C — Production use cases & portfolio (items 43–47)
+*Goal: portfolio-quality real-world projects and interview depth on healthcare AI topics*
+
+43. ⬜ Harness engineering — systematic evaluation test frameworks for agents; defining evaluation datasets (input + expected output pairs), scoring functions (exact match, semantic similarity, human rating), regression suites that run on every prompt change, CI/CD integration so prompt changes are automatically evaluated before deployment
+44. ⬜ AWS Comprehend Medical — healthcare NLP entity extraction (conditions, medications, dosages, anatomy); pairing with Bedrock for structured clinical document analysis; PHI detection vs Bedrock Guardrails PII — when to use each
+45. ⬜ Real use case: denial analysis or free-text eligibility parser — end-to-end Bedrock agent processing unstructured payer response text; portfolio demo
+46. ⬜ Azure DevOps pipeline hooks — running AI checks in CI/CD; integrating Bedrock calls or Claude Code into Azure pipeline steps; automated evaluation on PR
+47. ⬜ n8n — building AI-powered workflows visually; connecting Bedrock, SQS, DynamoDB, payer APIs without full Lambda implementations; rapid prototyping before committing to serverless architecture
+
+### Phase D — Claude Certified Architect (items 48–50)
 *Goal: differentiator cert after AWS certs are done; builds on everything above*
 
-38. ⬜ Claude Extended Thinking — built-in chain-of-thought vs prompt-level CoT; when to use each
-39. ⬜ Claude Agent SDK — Anthropic's official SDK vs raw boto3/Bedrock; agent loop patterns
-40. ⬜ Evaluation specific to Claude — LLM-as-judge using Claude to evaluate Claude outputs at scale
+48. ⬜ Claude Extended Thinking — built-in chain-of-thought vs prompt-level CoT; when to use each; token cost of thinking tokens; use cases where extended thinking improves accuracy
+49. ⬜ Claude Agent SDK — Anthropic's official SDK vs raw boto3/Bedrock; agent loop patterns; tool use conventions; comparing to Bedrock AgentCore (item 33)
+50. ⬜ Evaluation specific to Claude — LLM-as-judge using Claude to evaluate Claude outputs at scale; designing rubrics; avoiding self-serving bias in self-evaluation
 
 **LangGraph (added to item 10):**
 LangChain's framework for building stateful, cyclical agent workflows as graphs. Where LangChain handles single-pass chains, LangGraph handles loops — agents that reason, act, check results, and loop back. Think of it as the code-level equivalent of Step Functions but for agent logic specifically. Pairs naturally with LangChain — learn both together.
 
-**n8n (item 12):**
+**n8n (item 47):**
 Open-source workflow automation platform (like Zapier but self-hostable and more powerful). Build AI-powered workflows visually — connect Bedrock, SQS, DynamoDB, payer APIs without writing all the glue code. Good for rapid prototyping of agent workflows before committing to full Lambda/Step Functions implementation. Can be self-hosted on EC2 — stays inside your AWS environment for HIPAA compliance.
 
-**Harness engineering (item 24):**
+**Harness engineering (item 43):**
 Building systematic evaluation frameworks (test harnesses) for AI agents. Standard unit tests don't work for agents — outputs are non-deterministic. Harness engineering covers: defining evaluation datasets (input + expected output pairs), scoring functions (exact match, semantic similarity, human rating), regression suites that run on every prompt change, and CI/CD integration so prompt changes are automatically evaluated before deployment. Critical for production healthcare agents where wrong decisions have real consequences.
 
 **Multi-agent orchestration (item 7):**
 Goes beyond basic multi-agent patterns — focuses on how a central orchestrator agent coordinates multiple specialist agents at scale. Orchestrator receives a task, breaks it into subtasks, delegates to the right specialist, collects results, synthesizes final answer. Covers: agent communication protocols, handling partial failures across agents, state management between agents, when to use Step Functions vs code-based orchestration.
 Fits here because it builds directly on multi-agent patterns (end of item 6) and sets up Step Functions (item 11) as the infrastructure layer.
 
-**Multi-source RAG (item 14):**
+**Multi-source RAG (item 20):**
 Retrieving from multiple knowledge bases simultaneously in one query — e.g., Aetna KB + internal member history + clinical guidelines, all searched in parallel, results merged and ranked before injecting into prompt. Covers: federated search across KBs, result merging strategies, source weighting (trust your policy doc more than general knowledge), conflict resolution when sources disagree.
-Fits right after basic embeddings + vector search (item 13) — natural progression from single-source to multi-source.
+Fits right after basic embeddings + vector search (item 18) — natural progression from single-source to multi-source.
 
 ### Claude Code — What to Learn (item 7)
 
